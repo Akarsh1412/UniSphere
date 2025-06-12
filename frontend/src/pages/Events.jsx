@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, Filter } from 'lucide-react';
 import Card from '../components/Cards';
 

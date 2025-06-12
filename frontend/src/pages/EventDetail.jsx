@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, UserPlus, ArrowLeft, Star, Share2, CreditCard } from 'lucide-react';
 import Card from '../components/Cards';
@@ -103,6 +103,10 @@ const EventDetail = () => {
       alert('Event link copied to clipboard!');
     }
   };
+
+  useEffect(() => {
+      window.scrollTo(0, 0);
+    }, [id]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">

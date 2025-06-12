@@ -115,8 +115,11 @@ const ClubDetails = () => {
 
 // }, []);
 
-  const club = clubsData[1];
-  // console.log(club);
+const club = clubsData[1];
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [clubId]);
+
   
 
   if (!club) {
