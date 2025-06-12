@@ -2,6 +2,8 @@ import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route } 
 import Footer from "./components/Footer.jsx";
 import Navbar from "./components/Navbar.jsx";
 import Home from './pages/Home';
+import Events from './pages/Events';
+import EventDetail from './pages/EventDetail';
 
 const Layout = () => {
   return (
@@ -32,6 +34,8 @@ const router = createBrowserRouter(
     <>
       <Route path='/' element={<Layout />} />
       <Route path='/home' element={<AppLayout><Home /></AppLayout>} />
+      <Route path='/events' element={<AppLayout><Events /></AppLayout>} />
+      <Route path='/events/:id' element={<AppLayout><EventDetail /></AppLayout>} />
     </>
   )
 );

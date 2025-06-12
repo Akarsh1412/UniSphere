@@ -21,7 +21,7 @@ const Footer = () => {
   const contactInfo = [
     { icon: Mail, text: 'info@unisphere.edu', type: 'email' },
     { icon: Phone, text: '+1 (555) 123-4567', type: 'phone' },
-    { icon: MapPin, text: 'University Campus, City, State 12345', type: 'address' },
+    { icon: MapPin, text: 'VIT Bhopal University Campus, City, State 12345', type: 'address' },
   ];
 
   return (

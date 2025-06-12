@@ -31,10 +31,53 @@ const Home = () => {
       club: 'Entrepreneurship Club',
       date: 'July 5, 2025',
       image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=300&fit=crop'
+    },
+    {
+      id:5,
+      title: 'Tech Fest 2025',
+      club: 'Computer Science Club',
+      date: 'June 25, 2025',
+      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop'
+    },
+    {
+      id: 6,
+      title: 'Cultural Night',
+      club: 'Arts & Culture Society',
+      date: 'June 28, 2025',
+      image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop'
+    },
+    {
+      id: 7,
+      title: 'Sports Championship',
+      club: 'Athletic Club',
+      date: 'July 2, 2025',
+      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop'
+    },
+    {
+      id: 8,
+      title: 'Innovation Summit',
+      club: 'Entrepreneurship Club',
+      date: 'July 5, 2025',
+      image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=300&fit=crop'
     }
   ];
 
   const featuredClubs = [
+    {
+      name: 'Robotics Club',
+      members: 234,
+      image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=300&h=200&fit=crop'
+    },
+    {
+      name: 'Photography Club',
+      members: 189,
+      image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=300&h=200&fit=crop'
+    },
+    {
+      name: 'Debate Society',
+      members: 156,
+      image: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=300&h=200&fit=crop'
+    },
     {
       name: 'Robotics Club',
       members: 234,
@@ -148,7 +191,7 @@ const Home = () => {
               <p className="text-lg text-gray-600">Join vibrant communities that match your interests</p>
             </div>
             
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
               {featuredClubs.map((club, index) => (
                 <Card key={index} className="group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                   <div className="aspect-[3/2] overflow-hidden rounded-t-xl">
