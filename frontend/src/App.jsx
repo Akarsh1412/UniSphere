@@ -1,47 +1,17 @@
-import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route } from 'react-router-dom';
-import Footer from "./components/Footer.jsx";
-import Navbar from "./components/Navbar.jsx";
-import Home from './pages/Home';
-import Events from './pages/Events';
-import EventDetail from './pages/EventDetail';
-
-const Layout = () => {
-  return (
-    <>
-      <Navbar />
-      <div className="mt-16">
-        <Home />
-      </div>
-      <Footer />
-    </>
-  );
-};
-
-const AppLayout = ({ children }) => {
-  return (
-    <>
-      <Navbar />
-      <div className="mt-16">
-        {children}
-      </div>
-      <Footer />
-    </>
-  );
-};
-
-const router = createBrowserRouter(
-  createRoutesFromElements(
-    <>
-      <Route path='/' element={<Layout />} />
-      <Route path='/home' element={<AppLayout><Home /></AppLayout>} />
-      <Route path='/events' element={<AppLayout><Events /></AppLayout>} />
-      <Route path='/events/:id' element={<AppLayout><EventDetail /></AppLayout>} />
-    </>
-  )
-);
+import { Outlet } from "react-router-dom";
+import Footer from "./components/Footer";
+import Navbar from "./components/Navbar";
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <Navbar />
+      <div className="mt-15">
+        <Outlet />
+      </div>
+      <Footer />
+    </>
+  );
 }
 
 export default App;

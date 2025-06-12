@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, Filter } from 'lucide-react';
 import Card from '../components/Cards';
 
@@ -220,7 +220,7 @@ const Events = () => {
             </div>
           </section>
         )}
-
+        
         <section>
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold text-gray-900">All Events</h2>
