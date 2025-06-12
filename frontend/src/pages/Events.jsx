@@ -1,11 +1,11 @@
 import React from 'react'
 
-function Home() {
+const Events = () => {
   return (
     <div>
-        Home
+      
     </div>
   )
 }
 
-export default Home
+export default Events

@@ -1,12 +1,12 @@
 import { Outlet } from "react-router-dom";
-import Footer from "./components/Footer/Footer";
-import Navbar from "./components/Navbar/Navbar";
+import Footer from "./components/Footer.jsx";
+import Navbar from "./components/Navbar.jsx";
 
 function App() {
   return (
     <>
       <Navbar />
-      <div className="mt-15"> {/* Adjust padding to match navbar height */}
+      <div className="mt-15">  
         <Outlet />
       </div>
       <Footer />
