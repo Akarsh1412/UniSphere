@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import { useEffect } from 'react';
 import { ArrowRight, Calendar, Users, Star, TrendingUp } from 'lucide-react';
 import Card from '../components/Cards';
 import { useNavigate, Link } from 'react-router-dom';
@@ -256,9 +256,6 @@ const Home = () => {
                   className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300">
                     Create Account
                   </Link>
-                  <button className="px-8 py-4 border-2 border-white text-white font-semibold rounded-full hover:bg-white hover:text-blue-600 transition-all duration-300">
-                    Learn More
-                  </button>
                 </div>
               </div>
             </Card>

@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { Menu, X } from 'lucide-react';
-import { Link, NavLink } from 'react-router-dom';
+import { useState } from "react";
+import { Menu, X } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
-    { name: 'Events', path: '/events' },
-    { name: 'Community', path: '/community' },
-    { name: 'Clubs', path: '/clubs' },
+    { name: "Events", path: "/events" },
+    { name: "Community", path: "/community" },
+    { name: "Clubs", path: "/clubs" },
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -42,8 +42,8 @@ const Navbar = () => {
                 className={({ isActive }) =>
                   `relative px-4 py-2 text-sm font-medium transition-all duration-300 group ${
                     isActive
-                      ? 'text-blue-600'
-                      : 'text-gray-700 hover:text-blue-600'
+                      ? "text-blue-600"
+                      : "text-gray-700 hover:text-blue-600"
                   }`
                 }
               >
@@ -52,14 +52,14 @@ const Navbar = () => {
                     {item.name}
                     <span
                       className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300 ${
-                        isActive ? 'w-full' : 'w-0 group-hover:w-full'
+                        isActive ? "w-full" : "w-0 group-hover:w-full"
                       }`}
                     ></span>
                   </>
                 )}
               </NavLink>
             ))}
-            
+
             {/* Login Button */}
             <Link
               to="/login"
@@ -85,8 +85,8 @@ const Navbar = () => {
         <div
           className={`md:hidden transition-all duration-300 ease-in-out ${
             isOpen
-              ? 'max-h-96 opacity-100 pb-6'
-              : 'max-h-0 opacity-0 overflow-hidden'
+              ? "max-h-96 opacity-100 pb-6"
+              : "max-h-0 opacity-0 overflow-hidden"
           }`}
         >
           <div className="pt-4 space-y-2">
@@ -98,8 +98,8 @@ const Navbar = () => {
                 className={({ isActive }) =>
                   `block px-4 py-3 rounded-lg text-base font-medium transition-all duration-300 ${
                     isActive
-                      ? 'text-blue-600 bg-blue-50'
-                      : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                      ? "text-blue-600 bg-blue-50"
+                      : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
                   }`
                 }
               >

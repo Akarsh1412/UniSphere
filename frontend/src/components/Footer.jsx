@@ -1,17 +1,26 @@
-import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import {
+  Mail,
+  Phone,
+  MapPin,
+  ExternalLink,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   const quickLinks = [
-    { name: 'Events', path: '/events' },
-    { name: 'Community', path: '/community' },
-    { name: 'Clubs', path: '/clubs' },
+    { name: "Events", path: "/events" },
+    { name: "Community", path: "/community" },
+    { name: "Clubs", path: "/clubs" },
   ];
 
   const contactInfo = [
-    { icon: Mail, text: 'info@unisphere.edu', type: 'email' },
-    { icon: Phone, text: '+91 912 2132 122', type: 'phone' },
-    { icon: MapPin, text: 'VIT Bhopal University, Sehore, Madhya Pradesh', type: 'address' },
+    { icon: Mail, text: "info@unisphere.edu", type: "email" },
+    { icon: Phone, text: "+91 912 2132 122", type: "phone" },
+    {
+      icon: MapPin,
+      text: "VIT Bhopal University, Sehore, Madhya Pradesh",
+      type: "address",
+    },
   ];
 
   return (
@@ -19,7 +28,6 @@ const Footer = () => {
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <div className="flex items-center space-x-3 mb-6">
@@ -35,13 +43,16 @@ const Footer = () => {
               </span>
             </div>
             <p className="text-gray-400 mb-6 leading-relaxed">
-              Connecting students, fostering communities, and creating unforgettable experiences across campus life.
+              Connecting students, fostering communities, and creating
+              unforgettable experiences across campus life.
             </p>
           </div>
 
           {/* Quick Links */}
           <div className="lg:col-span-1">
-            <h3 className="text-lg font-semibold mb-6 text-white">Quick Links</h3>
+            <h3 className="text-lg font-semibold mb-6 text-white">
+              Quick Links
+            </h3>
             <ul className="space-y-3">
               {quickLinks.map((link) => (
                 <li key={link.name}>
@@ -52,7 +63,10 @@ const Footer = () => {
                     <span className="group-hover:translate-x-1 transition-transform duration-300">
                       {link.name}
                     </span>
-                    <ExternalLink size={14} className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <ExternalLink
+                      size={14}
+                      className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    />
                   </Link>
                 </li>
               ))}
@@ -61,7 +75,9 @@ const Footer = () => {
 
           {/* Contact Info */}
           <div className="lg:col-span-1">
-            <h3 className="text-lg font-semibold mb-6 text-white">Get in Touch</h3>
+            <h3 className="text-lg font-semibold mb-6 text-white">
+              Get in Touch
+            </h3>
             <ul className="space-y-4">
               {contactInfo.map((contact, index) => (
                 <li key={index} className="flex items-start space-x-3 group">
@@ -78,7 +94,9 @@ const Footer = () => {
 
           {/* Newsletter Signup */}
           <div className="lg:col-span-1">
-            <h3 className="text-lg font-semibold mb-6 text-white">Stay Updated</h3>
+            <h3 className="text-lg font-semibold mb-6 text-white">
+              Stay Updated
+            </h3>
             <p className="text-gray-400 text-sm mb-4">
               Subscribe to our newsletter for the latest events and updates.
             </p>
@@ -103,7 +121,6 @@ const Footer = () => {
           </div>
         </div>
       </div>
-
     </footer>
   );
 };
