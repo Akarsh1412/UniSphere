@@ -1,8 +1,10 @@
 import React from 'react';
 import { ArrowRight, Calendar, Users, Star, TrendingUp } from 'lucide-react';
 import Card from '../components/Cards';
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
+  const navigate = useNavigate();
   const upcomingEvents = [
     {
       id: 1,
@@ -102,6 +104,13 @@ const Home = () => {
     { icon: TrendingUp, label: 'Success Rate', value: '98%' }
   ];
 
+  const handleViewEvent = (eventId) => {
+    navigate(`/events/${eventId}`);
+  };
+
+  const handleViewClub = (clubId) => {
+    navigate(`/clubs/${clubId}`);
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
       <div className="pt-16">
@@ -128,7 +137,8 @@ const Home = () => {
                   <span>Explore Events</span>
                   <ArrowRight size={18} />
                 </button>
-                <button className="px-8 py-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-full hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300">
+                <button
+                className="px-8 py-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-full hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300">
                   Join Community
                 </button>
               </div>
@@ -176,7 +186,8 @@ const Home = () => {
                       <p className="text-sm text-gray-500">{event.club}</p>
                       <p className="text-sm text-blue-600 font-medium">{event.date}</p>
                     </div>
-                    <button className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300">
+                    <button onClick={() => handleViewEvent(event.id)}
+                    className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300">
                       View
                     </button>
                   </div>
@@ -206,7 +217,8 @@ const Home = () => {
                       {club.name}
                     </h3>
                     <p className="text-gray-600 mb-4">{club.members} members</p>
-                    <button className="w-full py-2.5 border-2 border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-600 hover:text-white transition-all duration-300">
+                    <button onClick={() => handleViewClub(club.id)}
+                    className="w-full py-2.5 border-2 border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-600 hover:text-white transition-all duration-300">
                       Join Club
                     </button>
                   </div>

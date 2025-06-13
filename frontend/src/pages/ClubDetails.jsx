@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, Users, Star, Calendar, MapPin, DollarSign, 
+  ArrowLeft, Users, Star, Calendar, MapPin, 
   Crown, Mail, Phone, Globe, Instagram, Twitter, Facebook,
-  TrendingUp, Award, Clock, Image, Video, FileText
+  TrendingUp, Award, Clock, Image, UserPlus
 } from 'lucide-react';
 
 const ClubDetails = () => {
   const { clubId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  // const [club, setClub] = useState(null);
 
   const clubsData = {
     '1': {
@@ -24,7 +23,6 @@ const ClubDetails = () => {
       featured: true,
       rating: 4.8,
       established: '2019',
-      revenue: '$15,420',
       admin: {
         name: 'Dr. Sarah Johnson',
         email: 'sarah.johnson@university.edu',
@@ -49,36 +47,36 @@ const ClubDetails = () => {
           name: 'Robot Design Competition 2024',
           date: '2024-11-15',
           attendees: 89,
-          revenue: '$2,400',
           image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=300&h=200&fit=crop',
-          type: 'Competition'
+          type: 'Competition',
+          description: 'Annual robotics competition featuring innovative designs and autonomous systems.'
         },
         {
           id: 2,
           name: 'Arduino Workshop Series',
           date: '2024-10-20',
           attendees: 156,
-          revenue: '$1,200',
           image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=300&h=200&fit=crop',
-          type: 'Workshop'
+          type: 'Workshop',
+          description: 'Hands-on workshop teaching Arduino programming and hardware interfacing.'
         },
         {
           id: 3,
           name: 'Tech Talk: AI in Robotics',
           date: '2024-09-10',
           attendees: 203,
-          revenue: '$800',
           image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop',
-          type: 'Seminar'
+          type: 'Seminar',
+          description: 'Expert discussion on artificial intelligence applications in modern robotics.'
         },
         {
           id: 4,
           name: 'Campus Robot Demo Day',
           date: '2024-08-25',
           attendees: 124,
-          revenue: '$600',
           image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=300&h=200&fit=crop',
-          type: 'Demo'
+          type: 'Demo',
+          description: 'Showcase of student-built robots and their practical applications.'
         }
       ],
       upcomingEvents: [
@@ -87,14 +85,16 @@ const ClubDetails = () => {
           name: 'Regional Robotics Championship',
           date: '2025-07-15',
           expectedAttendees: 200,
-          venue: 'Main Auditorium'
+          venue: 'Main Auditorium',
+          description: 'Compete with the best robotics teams from across the region.'
         },
         {
           id: 6,
           name: 'Beginner Python Workshop',
           date: '2025-07-20',
           expectedAttendees: 80,
-          venue: 'Computer Lab A'
+          venue: 'Computer Lab A',
+          description: 'Learn Python programming fundamentals for robotics applications.'
         }
       ],
       achievements: [
@@ -106,21 +106,11 @@ const ClubDetails = () => {
     }
   };
 
-//   useEffect(() => {
-//     const fetchClub = () => {
-//       const clubData = clubsData[clubId];
-//       setClub(clubData);
-//     };
-//     fetchClub();
-
-// }, []);
-
-const club = clubsData[1];
+  const club = clubsData[1];
+  
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [clubId]);
-
-  
 
   if (!club) {
     return (
@@ -141,7 +131,7 @@ const club = clubsData[1];
   ];
 
   const StatCard = ({ icon: Icon, label, value, trend }) => (
-    <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+    <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
       <div className="flex items-center justify-between mb-2">
         <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg text-white">
           <Icon size={24} />
@@ -159,7 +149,7 @@ const club = clubsData[1];
   );
 
   const EventCard = ({ event }) => (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group">
+    <div className="bg-white/70 backdrop-blur-lg rounded-xl shadow-lg border border-white/20 overflow-hidden hover:shadow-xl transition-all duration-300 group">
       <div className="relative">
         <img 
           src={event?.image} 
@@ -172,6 +162,7 @@ const club = clubsData[1];
       </div>
       <div className="p-6">
         <h3 className="text-lg font-bold text-gray-900 mb-2">{event.name}</h3>
+        <p className="text-gray-600 text-sm mb-4">{event.description}</p>
         <div className="space-y-2 text-sm text-gray-600 mb-4">
           <div className="flex items-center space-x-2">
             <Calendar size={16} />
@@ -181,19 +172,17 @@ const club = clubsData[1];
             <Users size={16} />
             <span>{event.attendees} attendees</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <DollarSign size={16} />
-            <span className="text-green-600 font-medium">{event.revenue}</span>
-          </div>
         </div>
+        <button className="w-full py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300">
+          View Details
+        </button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20">
-      {/* Back Button */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 py-4">
         <button
           onClick={() => navigate('/clubs')}
           className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors duration-300 mb-6"
@@ -203,7 +192,6 @@ const club = clubsData[1];
         </button>
       </div>
 
-      {/* Hero Section */}
       <div className="relative">
         <div 
           className="h-64 bg-cover bg-center"
@@ -249,19 +237,16 @@ const club = clubsData[1];
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard icon={Users} label="Total Members" value={club.members} trend="12" />
           <StatCard icon={Calendar} label="Events Hosted" value={club?.stats?.totalEvents} trend="8" />
-          <StatCard icon={DollarSign} label="Revenue Generated" value={club.revenue} trend="15" />
           <StatCard icon={Award} label="Achievements" value={club?.stats?.achievements} trend="5" />
+          <StatCard icon={UserPlus} label="Active Projects" value={club?.stats?.activeProjects} trend="3" />
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 mb-8">
+        <div className="bg-white/70 backdrop-blur-lg rounded-xl shadow-lg border border-white/20 mb-8">
           <div className="flex space-x-0 overflow-x-auto">
             {tabs.map((tab) => (
               <button
@@ -280,16 +265,13 @@ const club = clubsData[1];
           </div>
         </div>
 
-        {/* Tab Content */}
         <div className="space-y-8">
           
-          {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               
-              {/* Club Description */}
               <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+                <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20">
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">About {club.name}</h2>
                   <p className="text-gray-700 leading-relaxed mb-6">{club.description}</p>
                   
@@ -307,8 +289,7 @@ const club = clubsData[1];
                   </div>
                 </div>
 
-                {/* Achievements */}
-                <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+                <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20">
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">Achievements</h2>
                   <div className="space-y-3">
                     {club?.achievements?.map((achievement, index) => (
@@ -321,11 +302,9 @@ const club = clubsData[1];
                 </div>
               </div>
 
-              {/* Sidebar */}
               <div className="space-y-6">
                 
-                {/* Club Admin */}
-                <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+                <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20">
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
                     <Crown className="text-yellow-600" size={20} />
                     <span>Club Admin</span>
@@ -353,8 +332,7 @@ const club = clubsData[1];
                   </div>
                 </div>
 
-                {/* Quick Stats */}
-                <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+                <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Stats</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
@@ -366,8 +344,8 @@ const club = clubsData[1];
                       <span className="font-semibold text-green-600">{club.stats.upcomingEvents}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Total Revenue</span>
-                      <span className="font-semibold text-purple-600">{club.revenue}</span>
+                      <span className="text-gray-600">Total Achievements</span>
+                      <span className="font-semibold text-purple-600">{club.stats.achievements}</span>
                     </div>
                   </div>
                 </div>
@@ -375,17 +353,16 @@ const club = clubsData[1];
             </div>
           )}
 
-          {/* Events Tab */}
           {activeTab === 'events' && (
             <div className="space-y-8">
               
-              {/* Upcoming Events */}
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Upcoming Events</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                   {club?.upcomingEvents?.map(event => (
-                    <div key={event.id} className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 border-l-4 border-l-green-500">
+                    <div key={event.id} className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20 border-l-4 border-l-green-500">
                       <h3 className="text-lg font-bold text-gray-900 mb-2">{event.name}</h3>
+                      <p className="text-gray-600 text-sm mb-4">{event.description}</p>
                       <div className="space-y-2 text-sm text-gray-600">
                         <div className="flex items-center space-x-2">
                           <Calendar size={16} />
@@ -400,12 +377,14 @@ const club = clubsData[1];
                           <span>{event.expectedAttendees} expected</span>
                         </div>
                       </div>
+                      <button className="w-full mt-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white font-medium rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300">
+                        Register Now
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Past Events */}
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Past Events</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -417,21 +396,18 @@ const club = clubsData[1];
             </div>
           )}
 
-          {/* Media Tab */}
           {activeTab === 'media' && (
-            <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-100 text-center">
+            <div className="bg-white/70 backdrop-blur-lg rounded-xl p-8 shadow-lg border border-white/20 text-center">
               <Image size={64} className="mx-auto text-gray-400 mb-4" />
               <h3 className="text-xl font-semibold text-gray-700 mb-2">Media Gallery</h3>
               <p className="text-gray-500">Photo and video gallery coming soon...</p>
             </div>
           )}
 
-          {/* Contact Tab */}
           {activeTab === 'contact' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               
-              {/* Contact Information */}
-              <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+              <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
                 <div className="space-y-4 mb-6">
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
@@ -462,7 +438,6 @@ const club = clubsData[1];
                 </div>
               </div>
 
-              {/* Join Club */}
               <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl p-6 text-white">
                 <h2 className="text-2xl font-bold mb-4">Join Our Community</h2>
                 <p className="text-blue-100 mb-6">
@@ -476,6 +451,9 @@ const club = clubsData[1];
           )}
         </div>
       </div>
+      
+      <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full blur-3xl opacity-10"></div>
+      <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-br from-pink-400 to-blue-500 rounded-full blur-3xl opacity-10"></div>
     </div>
   );
 };
