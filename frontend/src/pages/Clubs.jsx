@@ -261,8 +261,7 @@ const Clubs = () => {
           </div>
         )}
 
-        {/* Call to Action */}
-        <div className="mt-16 text-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+        {/* <div className="mt-16 text-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">
             Can't find what you're looking for?
           </h2>
@@ -272,7 +271,7 @@ const Clubs = () => {
           <button className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300">
             Create a Club
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

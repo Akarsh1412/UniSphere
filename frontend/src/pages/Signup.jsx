@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 const App = () => {
   const [formData, setFormData] = useState({
@@ -75,12 +75,10 @@ const App = () => {
       }, 1500);
     }
   };
-  
-  const PageLink = ({ href, children, className }) => (
-    <a href={href} className={className} onClick={(e) => e.preventDefault()}>
-        {children}
-    </a>
-  );
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 px-4 font-sans">

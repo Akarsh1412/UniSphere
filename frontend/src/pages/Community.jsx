@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Image, Send, Users, TrendingUp, Bookmark } from 'lucide-react';
 
 const Community = () => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowRight, Calendar, Users, Star, TrendingUp } from 'lucide-react';
 import Card from '../components/Cards';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -133,14 +133,17 @@ const Home = () => {
               </div>
               
               <div className="flex flex-wrap gap-4">
-                <button className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:shadow-lg hover:shadow-blue-500/25 hover:scale-105 transition-all duration-300 flex items-center space-x-2">
+                <Link
+                to='/events'
+                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:shadow-lg hover:shadow-blue-500/25 hover:scale-105 transition-all duration-300 flex items-center space-x-2">
                   <span>Explore Events</span>
                   <ArrowRight size={18} />
-                </button>
-                <button
+                </Link>
+                <Link
+                to='/signup'
                 className="px-8 py-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-full hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300">
                   Join Community
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -204,25 +207,33 @@ const Home = () => {
             
             <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
               {featuredClubs.map((club, index) => (
-                <Card key={index} className="group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                  <div className="aspect-[3/2] overflow-hidden rounded-t-xl">
-                    <img 
-                      src={club.image} 
-                      alt={club.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="font-bold text-xl text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                      {club.name}
-                    </h3>
-                    <p className="text-gray-600 mb-4">{club.members} members</p>
-                    <button onClick={() => handleViewClub(club.id)}
-                    className="w-full py-2.5 border-2 border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-600 hover:text-white transition-all duration-300">
+                <Card 
+                key={index} 
+                className="group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
+              >
+                <div className="aspect-[3/2] overflow-hidden rounded-t-xl">
+                  <img 
+                    src={club.image} 
+                    alt={club.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-6 flex flex-col flex-1">
+                  <h3 className="font-bold text-xl text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                    {club.name}
+                  </h3>
+                  <p className="text-gray-600 mb-4">{club.members} members</p>
+                  <div className="mt-auto">
+                    <button 
+                      onClick={() => handleViewClub(club.id)}
+                      className="w-full py-2.5 border-2 border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-600 hover:text-white transition-all duration-300"
+                    >
                       Join Club
                     </button>
                   </div>
-                </Card>
+                </div>
+              </Card>
+
               ))}
             </div>
           </section>
@@ -235,9 +246,11 @@ const Home = () => {
                   Join thousands of students who are already making the most of their campus experience
                 </p>
                 <div className="flex flex-wrap justify-center gap-4">
-                  <button className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300">
+                  <Link 
+                  to='/signup'
+                  className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300">
                     Create Account
-                  </button>
+                  </Link>
                   <button className="px-8 py-4 border-2 border-white text-white font-semibold rounded-full hover:bg-white hover:text-blue-600 transition-all duration-300">
                     Learn More
                   </button>

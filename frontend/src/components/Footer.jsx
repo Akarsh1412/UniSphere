@@ -4,24 +4,14 @@ import { Link } from 'react-router-dom';
 const Footer = () => {
   const quickLinks = [
     { name: 'Events', path: '/events' },
-    { name: 'Media', path: '/media' },
+    { name: 'Community', path: '/community' },
     { name: 'Clubs', path: '/clubs' },
-    { name: 'About Us', path: '/about' },
-    { name: 'Contact', path: '/contact' },
-    { name: 'Privacy Policy', path: '/privacy' },
-  ];
-
-  const socialLinks = [
-    { name: 'Facebook', icon: Facebook, url: '#', color: 'hover:text-blue-600' },
-    { name: 'Twitter', icon: Twitter, url: '#', color: 'hover:text-sky-500' },
-    { name: 'Instagram', icon: Instagram, url: '#', color: 'hover:text-pink-600' },
-    { name: 'LinkedIn', icon: Linkedin, url: '#', color: 'hover:text-blue-700' },
   ];
 
   const contactInfo = [
     { icon: Mail, text: 'info@unisphere.edu', type: 'email' },
-    { icon: Phone, text: '+1 (555) 123-4567', type: 'phone' },
-    { icon: MapPin, text: 'VIT Bhopal University Campus, City, State 12345', type: 'address' },
+    { icon: Phone, text: '+91 912 2132 122', type: 'phone' },
+    { icon: MapPin, text: 'VIT Bhopal University, Sehore, Madhya Pradesh', type: 'address' },
   ];
 
   return (
@@ -47,20 +37,6 @@ const Footer = () => {
             <p className="text-gray-400 mb-6 leading-relaxed">
               Connecting students, fostering communities, and creating unforgettable experiences across campus life.
             </p>
-            
-            {/* Social Links */}
-            <div className="flex space-x-4">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.name}
-                  href={social.url}
-                  className={`p-2 bg-gray-800 rounded-lg text-gray-400 transition-all duration-300 hover:bg-gray-700 transform hover:scale-110 ${social.color}`}
-                  aria-label={social.name}
-                >
-                  <social.icon size={20} />
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -120,27 +96,14 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Bottom Bar */}
       <div className="border-t border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="text-gray-400 text-sm">
-              © 2025 UniSphere. All rights reserved.
-            </div>
-            <div className="flex space-x-6 text-sm">
-              <Link to="/terms" className="text-gray-400 hover:text-white transition-colors duration-300">
-                Terms of Service
-              </Link>
-              <Link to="/privacy" className="text-gray-400 hover:text-white transition-colors duration-300">
-                Privacy Policy
-              </Link>
-              <Link to="/cookies" className="text-gray-400 hover:text-white transition-colors duration-300">
-                Cookie Policy
-              </Link>
-            </div>
+          <div className="text-gray-400 text-sm text-center">
+            © 2025 UniSphere. All rights reserved.
           </div>
         </div>
       </div>
+
     </footer>
   );
 };
