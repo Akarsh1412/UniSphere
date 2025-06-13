@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Calendar, Clock, MapPin, Users, UserPlus, Save, X, Plus, Minus } from 'lucide-react';
 
 const Add = () => {
@@ -9,6 +9,7 @@ const Add = () => {
     time: '',
     venue: '',
     price: '',
+    totalBudget: '',
     volunteersNeeded: '',
     capacity: '',
     image: null,
@@ -72,6 +73,7 @@ const Add = () => {
       ...formData,
       id: Date.now(),
       price: parseInt(formData.price),
+      totalBudget: parseInt(formData.totalBudget),
       volunteersNeeded: parseInt(formData.volunteersNeeded),
       capacity: parseInt(formData.capacity),
       registrations: 0,
@@ -88,6 +90,7 @@ const Add = () => {
       time: '',
       venue: '',
       price: '',
+      totalBudget: '', // Add this
       volunteersNeeded: '',
       capacity: '',
       image: null,
@@ -179,47 +182,59 @@ const Add = () => {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Price (₹)</label>
-                  <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <UserPlus size={16} className="inline mr-1" />
-                    Volunteers Needed
-                  </label>
-                  <input
-                    type="number"
-                    name="volunteersNeeded"
-                    value={formData.volunteersNeeded}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Users size={16} className="inline mr-1" />
-                    Capacity
-                  </label>
-                  <input
-                    type="number"
-                    name="capacity"
-                    value={formData.capacity}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-              </div>
+              <div className="grid md:grid-cols-4 gap-6"> {/* Changed to 4 columns */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price (₹)</label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <UserPlus size={16} className="inline mr-1" />
+                      Volunteers Needed
+                    </label>
+                    <input
+                      type="number"
+                      name="volunteersNeeded"
+                      value={formData.volunteersNeeded}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Users size={16} className="inline mr-1" />
+                      Capacity
+                    </label>
+                    <input
+                      type="number"
+                      name="capacity"
+                      value={formData.capacity}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  {/* Add Total Budget field here */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Total Budget (₹)</label>
+                    <input
+                      type="number"
+                      name="totalBudget"
+                      value={formData.totalBudget}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Event Image</label>

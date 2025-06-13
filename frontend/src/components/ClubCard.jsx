@@ -6,8 +6,10 @@ const ClubCard = ({ club }) => {
   const handleViewClub = (clubId) => {
     navigate(`/clubs/${clubId}`);
   };
+
   return (
-    <div className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200 transform hover:-translate-y-2">
+    <div className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200 transform hover:-translate-y-2 flex flex-col">
+      
       {/* Image Container */}
       <div className="relative overflow-hidden">
         <img
@@ -32,7 +34,7 @@ const ClubCard = ({ club }) => {
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-6 flex flex-col flex-grow">
         <div className="flex items-start justify-between mb-3">
           <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300">
             {club.name}
@@ -45,11 +47,10 @@ const ClubCard = ({ club }) => {
           </div>
         </div>
 
-        <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+        <p className="text-gray-600 text-sm mb-4 leading-relaxed flex-grow">
           {club.description}
         </p>
 
-        {/* Stats */}
         <div className="flex items-center justify-between mb-4 text-sm text-gray-500">
           <div className="flex items-center space-x-1">
             <Users size={16} />
@@ -61,14 +62,15 @@ const ClubCard = ({ club }) => {
           </div>
         </div>
 
-        {/* View Club Button */}
-        <button
-          onClick={() => handleViewClub(club.id)}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2 group"
-        >
-          <Eye size={18} />
-          <span>View Club</span>
-        </button>
+        <div className="mt-auto">
+          <button
+            onClick={() => handleViewClub(club.id)}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2 group"
+          >
+            <Eye size={18} />
+            <span>View Club</span>
+          </button>
+        </div>
       </div>
     </div>
   );
