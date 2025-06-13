@@ -1,4 +1,4 @@
-import React from 'react';
+import {useEffect} from 'react';
 import { ArrowRight, Calendar, Users, Star, TrendingUp } from 'lucide-react';
 import Card from '../components/Cards';
 import { useNavigate, Link } from 'react-router-dom';
@@ -111,6 +111,11 @@ const Home = () => {
   const handleViewClub = (clubId) => {
     navigate(`/clubs/${clubId}`);
   };
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
       <div className="pt-16">

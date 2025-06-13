@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Image, Send, Users, TrendingUp, Bookmark } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Image, Send, Users, TrendingUp } from 'lucide-react';
 
 const Community = () => {
   const [posts, setPosts] = useState([
@@ -15,10 +15,31 @@ const Community = () => {
       image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop',
       timestamp: '2 hours ago',
       likes: 124,
-      comments: 23,
+      comments: [
+        {
+          id: 1,
+          author: {
+            name: 'Michael Wong',
+            avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face'
+          },
+          content: 'Wow Sarah! The composition is perfect. What settings did you use?',
+          timestamp: '1 hour ago'
+        },
+        {
+          id: 2,
+          author: {
+            name: 'Emma Thompson',
+            avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=40&h=40&fit=crop&crop=face'
+          },
+          content: 'This makes me want to join the photography club! When are your next workshops?',
+          timestamp: '45 minutes ago'
+        }
+      ],
       shares: 8,
       liked: false,
-      bookmarked: false
+      bookmarked: false,
+      showComments: false,
+      newComment: ''
     },
     {
       id: 2,
@@ -32,10 +53,31 @@ const Community = () => {
       image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=400&fit=crop',
       timestamp: '4 hours ago',
       likes: 298,
-      comments: 45,
+      comments: [
+        {
+          id: 1,
+          author: {
+            name: 'Dr. Peterson',
+            avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=40&h=40&fit=crop&crop=face'
+          },
+          content: 'Congratulations team! Your hard work and innovation paid off. Proud of you all!',
+          timestamp: '3 hours ago'
+        },
+        {
+          id: 2,
+          author: {
+            name: 'TechEnthusiast',
+            avatar: 'https://images.unsplash.com/photo-1564564321837-a57b7070ac4f?w=40&h=40&fit=crop&crop=face'
+          },
+          content: 'What was your robot\'s main innovation? Would love to know more about the design!',
+          timestamp: '2 hours ago'
+        }
+      ],
       shares: 22,
       liked: true,
-      bookmarked: true
+      bookmarked: true,
+      showComments: false,
+      newComment: ''
     },
     {
       id: 3,
@@ -48,10 +90,22 @@ const Community = () => {
       content: 'Rehearsals for our upcoming cultural night are going amazing! The energy and talent of our performers is incredible. This is going to be our best show yet! Who\'s excited to see what we\'ve been working on? 🎭🎨',
       timestamp: '6 hours ago',
       likes: 87,
-      comments: 12,
+      comments: [
+        {
+          id: 1,
+          author: {
+            name: 'James Wilson',
+            avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face'
+          },
+          content: 'The dance sequence you choreographed was mind-blowing! Can\'t wait to see it on stage.',
+          timestamp: '5 hours ago'
+        }
+      ],
       shares: 5,
       liked: false,
-      bookmarked: false
+      bookmarked: false,
+      showComments: false,
+      newComment: ''
     },
     {
       id: 4,
@@ -65,10 +119,40 @@ const Community = () => {
       image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600&h=400&fit=crop',
       timestamp: '8 hours ago',
       likes: 156,
-      comments: 28,
+      comments: [
+        {
+          id: 1,
+          author: {
+            name: 'Sophia Lee',
+            avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face'
+          },
+          content: 'So proud of you David! This is just the beginning. Your pitch was flawless!',
+          timestamp: '7 hours ago'
+        },
+        {
+          id: 2,
+          author: {
+            name: 'InvestorPro',
+            avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face'
+          },
+          content: 'Impressive presentation. Would love to schedule a meeting to discuss further.',
+          timestamp: '6 hours ago'
+        },
+        {
+          id: 3,
+          author: {
+            name: 'TechStartupFan',
+            avatar: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=40&h=40&fit=crop&crop=face'
+          },
+          content: 'What problem does your startup solve? Would love to hear more details!',
+          timestamp: '5 hours ago'
+        }
+      ],
       shares: 15,
       liked: false,
-      bookmarked: true
+      bookmarked: true,
+      showComments: false,
+      newComment: ''
     }
   ]);
 
@@ -87,12 +171,44 @@ const Community = () => {
     ));
   };
 
-  const handleBookmark = (postId) => {
+  const toggleComments = (postId) => {
     setPosts(posts.map(post => 
       post.id === postId 
-        ? { ...post, bookmarked: !post.bookmarked }
+        ? { ...post, showComments: !post.showComments } 
         : post
     ));
+  };
+
+  const handleCommentChange = (postId, value) => {
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { ...post, newComment: value } 
+        : post
+    ));
+  };
+
+  const handleAddComment = (postId) => {
+    setPosts(posts.map(post => {
+      if (post.id === postId && post.newComment.trim() !== '') {
+        const newComment = {
+          id: Date.now(), // Simple unique ID
+          author: {
+            name: 'You',
+            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&crop=face'
+          },
+          content: post.newComment,
+          timestamp: 'just now'
+        };
+        
+        return {
+          ...post,
+          comments: [...post.comments, newComment],
+          newComment: '',
+          showComments: true
+        };
+      }
+      return post;
+    }));
   };
 
   const handleImageSelect = (e) => {
@@ -119,10 +235,12 @@ const Community = () => {
       image: selectedImage,
       timestamp: 'now',
       likes: 0,
-      comments: 0,
+      comments: [],
       shares: 0,
       liked: false,
-      bookmarked: false
+      bookmarked: false,
+      showComments: false,
+      newComment: ''
     };
     
     setPosts([post, ...posts]);
@@ -143,6 +261,10 @@ const Community = () => {
     { name: 'Music Club', members: '234', image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=80&h=80&fit=crop' },
     { name: 'Gaming Society', members: '189', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=80&h=80&fit=crop' }
   ];
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -287,9 +409,16 @@ const Community = () => {
                             <span className="font-medium">{post.likes}</span>
                           </button>
                           
-                          <button className="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-all duration-200">
+                          <button 
+                            onClick={() => toggleComments(post.id)}
+                            className={`flex items-center space-x-2 transition-all duration-200 ${
+                              post.showComments 
+                                ? 'text-blue-600' 
+                                : 'text-gray-500 hover:text-blue-600'
+                            }`}
+                          >
                             <MessageCircle size={20} />
-                            <span className="font-medium">{post.comments}</span>
+                            <span className="font-medium">{post.comments.length}</span>
                           </button>
                           
                           <button className="flex items-center space-x-2 text-gray-500 hover:text-green-600 transition-all duration-200">
@@ -297,18 +426,59 @@ const Community = () => {
                             <span className="font-medium">{post.shares}</span>
                           </button>
                         </div>
-                        
-                        <button 
-                          onClick={() => handleBookmark(post.id)}
-                          className={`transition-all duration-200 ${
-                            post.bookmarked 
-                              ? 'text-yellow-500 hover:text-yellow-600' 
-                              : 'text-gray-500 hover:text-yellow-500'
-                          }`}
-                        >
-                          <Bookmark size={20} fill={post.bookmarked ? 'currentColor' : 'none'} />
-                        </button>
+            
                       </div>
+
+                      {/* Comments Section */}
+                      {post.showComments && (
+                        <div className="mt-6 pt-4 border-t border-gray-100">
+                          <div className="space-y-4">
+                            {post.comments.map((comment) => (
+                              <div key={comment.id} className="flex items-start space-x-3">
+                                <img 
+                                  src={comment.author.avatar} 
+                                  alt={comment.author.name} 
+                                  className="w-8 h-8 rounded-full object-cover mt-1" 
+                                />
+                                <div className="flex-1">
+                                  <div className="bg-gray-50 rounded-xl p-3">
+                                    <div className="flex items-baseline">
+                                      <h4 className="font-semibold text-sm">{comment.author.name}</h4>
+                                      <span className="text-xs text-gray-500 ml-2">{comment.timestamp}</span>
+                                    </div>
+                                    <p className="text-gray-700 mt-1">{comment.content}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Add Comment Form */}
+                          <div className="mt-4 flex items-center space-x-3">
+                            <img 
+                              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&crop=face" 
+                              alt="Your avatar" 
+                              className="w-8 h-8 rounded-full object-cover" 
+                            />
+                            <div className="flex-1 flex bg-gray-50 rounded-full px-4 py-2">
+                              <input
+                                type="text"
+                                value={post.newComment}
+                                onChange={(e) => handleCommentChange(post.id, e.target.value)}
+                                placeholder="Write a comment..."
+                                className="flex-1 bg-transparent border-0 focus:outline-none text-sm"
+                                onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                              />
+                              <button 
+                                onClick={() => handleAddComment(post.id)}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Send size={18} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

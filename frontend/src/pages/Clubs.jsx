@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, Search, Filter, Eye, Star, Calendar, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -186,6 +186,10 @@ const Clubs = () => {
       </div>
     </div>
   );
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 pb-12">

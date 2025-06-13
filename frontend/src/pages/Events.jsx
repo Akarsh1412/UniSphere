@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, Filter } from 'lucide-react';
 import Card from '../components/Cards';
@@ -143,6 +143,10 @@ const Events = () => {
   const handleViewEvent = (eventId) => {
     navigate(`/events/${eventId}`);
   };
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
