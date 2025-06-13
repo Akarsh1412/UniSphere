@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, Star, Calendar, MapPin, Crown, Mail, Phone, Globe, Instagram, Twitter, Facebook, TrendingUp, Award, Clock, Image, UserPlus } from "lucide-react";
+import StatCard from "../components/StatCard";
+import EventCard from "../components/EventCard";
+import { ArrowLeft, Users, Star, Calendar, MapPin, Crown, Mail, Phone, Globe, Instagram, Twitter, Facebook, Award, Clock, Image, UserPlus } from "lucide-react";
 
 const ClubDetails = () => {
   const { clubId } = useParams();
@@ -139,56 +141,6 @@ const ClubDetails = () => {
     { id: "media", label: "Media", icon: Image },
     { id: "contact", label: "Contact", icon: Mail },
   ];
-
-  const StatCard = ({ icon: Icon, label, value, trend }) => (
-    <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
-      <div className="flex items-center justify-between mb-2">
-        <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg text-white">
-          <Icon size={24} />
-        </div>
-        {trend && (
-          <div className="flex items-center text-green-600 text-sm">
-            <TrendingUp size={16} />
-            <span className="ml-1">+{trend}%</span>
-          </div>
-        )}
-      </div>
-      <h3 className="text-2xl font-bold text-gray-900 mb-1">{value}</h3>
-      <p className="text-gray-600 text-sm">{label}</p>
-    </div>
-  );
-
-  const EventCard = ({ event }) => (
-    <div className="bg-white/70 backdrop-blur-lg rounded-xl shadow-lg border border-white/20 overflow-hidden hover:shadow-xl transition-all duration-300 group">
-      <div className="relative">
-        <img
-          src={event?.image}
-          alt={event?.name}
-          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        <div className="absolute top-3 right-3 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
-          {event.type}
-        </div>
-      </div>
-      <div className="p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-2">{event.name}</h3>
-        <p className="text-gray-600 text-sm mb-4">{event.description}</p>
-        <div className="space-y-2 text-sm text-gray-600 mb-4">
-          <div className="flex items-center space-x-2">
-            <Calendar size={16} />
-            <span>{new Date(event.date).toLocaleDateString()}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Users size={16} />
-            <span>{event.attendees} attendees</span>
-          </div>
-        </div>
-        <button className="w-full py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300">
-          View Details
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
