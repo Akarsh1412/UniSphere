@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    code: '',
+    admin_id: '',
     password: ''
   });
   
@@ -27,8 +27,8 @@ const Login = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.code.trim()) {
-      newErrors.code = 'Email or registration number is required';
+    if (!formData.admin_id.trim()) {
+      newErrors.admin_id = 'Email or registration number is required';
     }
     
     if (!formData.password) {
@@ -69,17 +69,17 @@ const Login = () => {
 
         <form className="space-y-5" onSubmit={handleFormSubmit}>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Enter Admin Code</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Enter Admin ID</label>
             <input
               type="text"
-              placeholder="Code"
-              name='code'
-              value={formData.code}
+              placeholder="Admin Id"
+              name='admin_id'
+              value={formData.admin_id}
               onChange={handleInputChange}
-              className={`mt-1 w-full px-4 py-3 border ${errors.code ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/60 backdrop-blur-sm shadow-sm`}
+              className={`mt-1 w-full px-4 py-3 border ${errors.admin_id ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/60 backdrop-blur-sm shadow-sm`}
               required
             />
-            {errors.code && <p className="mt-1 text-red-500 text-sm">{errors.code}</p>}
+            {errors.admin_id && <p className="mt-1 text-red-500 text-sm">{errors.admin_id}</p>}
           </div>
 
           <div>

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-const App = () => {
+
+const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
+    regNumber: '', // New registration number field
     email: '',
     password: '',
     confirmPassword: '',
@@ -56,6 +58,12 @@ const App = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Full name is required';
+    // Registration number validation
+    if (!formData.regNumber.trim()) {
+      newErrors.regNumber = 'Registration number is required';
+    } else if (!/^[A-Za-z0-9]{8,12}$/.test(formData.regNumber)) {
+      newErrors.regNumber = 'Must be 8-12 alphanumeric characters';
+    }
     if (!/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = 'A valid email is required';
     if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
@@ -103,6 +111,21 @@ const App = () => {
               required
             />
             {errors.name && <p className="mt-1 text-red-500 text-sm">{errors.name}</p>}
+          </div>
+
+          {/* New Registration Number Field */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Registration Number *</label>
+            <input
+              type="text"
+              placeholder="Enter your registration ID"
+              name='regNumber'
+              value={formData.regNumber}
+              onChange={handleInputChange}
+              className={`mt-1 w-full px-4 py-3 border ${errors.regNumber ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/60 backdrop-blur-sm shadow-sm`}
+              required
+            />
+            {errors.regNumber && <p className="mt-1 text-red-500 text-sm">{errors.regNumber}</p>}
           </div>
 
           <div>
@@ -226,4 +249,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default Signup;
