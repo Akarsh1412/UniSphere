@@ -83,7 +83,7 @@ export const login = async (req, res) => {
     
     // Find user by email or registration number
     const result = await pool.query(
-      `SELECT id, name, email, password_hash, profile_picture, registration_number, role, verified 
+      `SELECT id, name, email, password_hash, profile_picture, registration_number, role 
        FROM users WHERE email = $1 OR registration_number = $1`,
       [identifier]
     );
@@ -112,8 +112,7 @@ export const login = async (req, res) => {
         email: user.email,
         profilePicture: user.profile_picture,
         registrationNumber: user.registration_number,
-        role: user.role,
-        verified: user.verified
+        role: user.role
       }
     });
   } catch (error) {
@@ -122,12 +121,82 @@ export const login = async (req, res) => {
   }
 };
 
+export const adminLogin = async (req, res) => {
+  try {
+    const { admin_id, password } = req.body;
+    if (!admin_id || !password) {
+      return res.status(400).json({ message: 'Admin ID and password are required' });
+    }
+
+    const result = process.env.ADMIN_ID === admin_id && process.env.ADMIN_PASSWORD === password;
+    if (result) {
+      // Successful admin login
+      const token = generateToken({ userId: admin_id, role: 'admin' });
+      res.json({
+        success: true,
+        message: 'Admin login successful',
+        token
+      });
+    } else {
+      // Failed admin login
+      res.status(401).json({ message: 'Invalid Admin ID or Password' });
+    }
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ success: false, message: 'Server error during admin login' });
+  }
+};
+
+export const verifyToken = async (req, res) => {
+  try {
+    // The authenticateToken middleware has already verified the token
+    // and set req.user with basic user info
+    const userId = req.user.userId;
+
+    // Fetch complete user data from database
+    const result = await pool.query(
+      `SELECT id, name, email, profile_picture, registration_number, role, created_at
+       FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    const user = result.rows[0];
+    
+    // Return user data in the expected format
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        profilePicture: user.profile_picture,
+        registrationNumber: user.registration_number,
+        role: user.role,
+        createdAt: user.created_at
+      }
+    });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during token verification' 
+    });
+  }
+};
+
 export const getProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
     
     const result = await pool.query(
-      `SELECT id, name, email, profile_picture, registration_number, role, verified, created_at
+      `SELECT id, name, email, profile_picture, registration_number, role, created_at
        FROM users WHERE id = $1`,
       [userId]
     );

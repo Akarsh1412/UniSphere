@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
-import { Menu, X, Home, PlusSquare, List, Megaphone, LogIn } from 'lucide-react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { Menu, X, Home, PlusSquare, List, Megaphone, LogIn, LogOut } from 'lucide-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+  const isAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
 
   const navItems = [
     { name: 'Dashboard', icon: Home, href: '/' },
@@ -13,6 +15,13 @@ const Navbar = () => {
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAdminAuthenticated');
+    localStorage.removeItem('adminToken');
+    navigate('/login');
+    setIsOpen(false); // Close mobile menu after logout
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200/20 shadow-lg">
@@ -52,14 +61,25 @@ const Navbar = () => {
               </NavLink>
             ))}
             
-            <NavLink
-              to="/login"
-              className="relative px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-full overflow-hidden group transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:scale-105 flex items-center space-x-2"
-            >
-              <LogIn size={18} />
-              <span className="relative z-10">Login</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </NavLink>
+            {isAuthenticated ? (
+              <button
+                onClick={handleLogout}
+                className="relative px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-full overflow-hidden group transition-all duration-300 hover:shadow-lg hover:shadow-red-500/25 hover:scale-105 flex items-center space-x-2"
+              >
+                <LogOut size={18} />
+                <span className="relative z-10">Logout</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </button>
+            ) : (
+              <NavLink
+                to="/login"
+                className="relative px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-full overflow-hidden group transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:scale-105 flex items-center space-x-2"
+              >
+                <LogIn size={18} />
+                <span className="relative z-10">Login</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </NavLink>
+            )}
           </div>
 
           <div className="md:hidden">
@@ -97,14 +117,25 @@ const Navbar = () => {
                 <span>{item.name}</span>
               </NavLink>
             ))}
-            <NavLink
-              to="/login"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center space-x-3 w-full mt-4 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transition-all duration-300"
-            >
-              <LogIn size={18} />
-              <span>Login</span>
-            </NavLink>
+            
+            {isAuthenticated ? (
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-3 w-full mt-4 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-lg hover:shadow-lg transition-all duration-300"
+              >
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <NavLink
+                to="/login"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center space-x-3 w-full mt-4 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transition-all duration-300"
+              >
+                <LogIn size={18} />
+                <span>Login</span>
+              </NavLink>
+            )}
           </div>
         </div>
       </div>

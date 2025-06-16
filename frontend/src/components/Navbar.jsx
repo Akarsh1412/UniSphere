@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  
+  const user = useSelector(state => state.user);  
 
   const navItems = [
     { name: "Events", path: "/events" },
@@ -12,6 +15,14 @@ const Navbar = () => {
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
+
+  const firstName = user?.name?.split(' ')[0] || null;
+
+  const isAuthenticated = user && (user.name || user.email || user.id);
+
+  // console.log('User state:', user);
+  // console.log('Is authenticated:', isAuthenticated);
+  // console.log('First name:', firstName);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200/20 shadow-lg">
@@ -60,14 +71,28 @@ const Navbar = () => {
               </NavLink>
             ))}
 
-            {/* Login Button */}
-            <Link
-              to="/login"
-              className="relative px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-full overflow-hidden group transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:scale-105"
-            >
-              <span className="relative z-10">Login</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </Link>
+            {/* User Profile Button or Login Button */}
+            {isAuthenticated ? (
+              <Link
+                to="/profile"
+                className="flex items-center space-x-2 group transition-all duration-300"
+              >
+                <div className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium">
+                  {firstName ? firstName.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <span className="font-medium text-gray-700 group-hover:text-blue-600">
+                  {firstName || 'Profile'}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="relative px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-full overflow-hidden group transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:scale-105"
+              >
+                <span className="relative z-10">Login</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -106,13 +131,29 @@ const Navbar = () => {
                 {item.name}
               </NavLink>
             ))}
-            <Link
-              to="/login"
-              onClick={() => setIsOpen(false)}
-              className="block w-full mt-4 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg text-center hover:shadow-lg transition-all duration-300"
-            >
-              Login
-            </Link>
+            
+            {isAuthenticated ? (
+              <Link
+                to="/profile"
+                onClick={() => setIsOpen(false)}
+                className="block w-full mt-4 px-4 py-3 rounded-lg bg-blue-50 text-blue-600 font-medium text-center hover:bg-blue-100 transition-all duration-300"
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium">
+                    {firstName ? firstName.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <span>Hi, {firstName || 'User'}</span>
+                </div>
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setIsOpen(false)}
+                className="block w-full mt-4 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg text-center hover:shadow-lg transition-all duration-300"
+              >
+                Login
+              </Link>
+            )}
           </div>
         </div>
       </div>

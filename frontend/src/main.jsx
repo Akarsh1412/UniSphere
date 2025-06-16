@@ -11,6 +11,7 @@ import Login from './pages/Login'
 import EventDetail from './pages/EventDetail'
 import ClubsDetails from './pages/ClubDetails'
 import Signup from './pages/Signup'
+import Profile from './pages/Profile'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -23,6 +24,7 @@ const router = createBrowserRouter(
       <Route path='clubs/:clubid' element={<ClubsDetails />} />
       <Route path='login' element={<Login />} />
       <Route path='signup' element={<Signup />} />
+      <Route path='profile' element={<Profile />} />
     </Route>
   )
 )

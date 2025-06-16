@@ -20,7 +20,7 @@ export const authenticateToken = async (req, res, next) => {
     
     // Verify user still exists
     const userResult = await pool.query(
-      'SELECT id, role, verified FROM users WHERE id = $1',
+      'SELECT id, role FROM users WHERE id = $1',
       [decoded.userId]
     );
     
@@ -34,7 +34,6 @@ export const authenticateToken = async (req, res, next) => {
     req.user = {
       userId: decoded.userId,
       role: userResult.rows[0].role,
-      verified: userResult.rows[0].verified
     };
     
     next();
@@ -77,7 +76,6 @@ export const optionalAuth = async (req, res, next) => {
         req.user = {
           userId: decoded.userId,
           role: userResult.rows[0].role,
-          verified: userResult.rows[0].verified
         };
       }
     }
@@ -114,13 +112,6 @@ export const requireVerification = (req, res, next) => {
     return res.status(401).json({ 
       success: false, 
       message: 'Authentication required' 
-    });
-  }
-  
-  if (!req.user.verified) {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Account verification required' 
     });
   }
   

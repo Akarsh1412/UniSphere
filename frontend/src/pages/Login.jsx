@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useDispatch } from 'react-redux';
+import { setUser } from '../redux/userSlice';
 
 const Login = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     identifier: '',
     password: ''
@@ -10,6 +15,7 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -17,8 +23,7 @@ const Login = () => {
       ...prev,
       [name]: value
     }));
-    
-    // Clear error when user types
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -43,14 +48,30 @@ const Login = () => {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
+    setSubmitError('');
+    
     if (validateForm()) {
       setIsLoading(true);
-      console.log('Login Form submitted:', formData);
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
-        // Handle login logic
-      }, 1500);
+
+      axios.post('http://localhost:5000/api/auth/login', formData)
+        .then(response => {
+          // Save token to localStorage
+          localStorage.setItem('token', response.data.token);
+          
+          // Dispatch user data to Redux store
+          dispatch(setUser(response.data.user));
+          
+          // Redirect to home page
+          navigate('/');
+        })
+        .catch(error => {
+          const errorMsg = error.response?.data?.message || 'Login failed. Please try again.';
+          setSubmitError(errorMsg);
+          console.error('Login error:', error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
   };
 
@@ -66,6 +87,12 @@ const Login = () => {
             Welcome Back
           </h2> 
         </div>
+
+        {submitError && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+            {submitError}
+          </div>
+        )}
 
         <form className="space-y-5" onSubmit={handleFormSubmit}>
           <div>

@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
 import bcrypt from 'bcryptjs';
 import authConfig from '../config/auth.js';
+import { Resend } from 'resend';
 
 const { bcryptSaltRounds } = authConfig;
 
@@ -179,5 +180,36 @@ export const getUserClubs = async (req, res) => {
   } catch (error) {
     console.error('Get user clubs error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT email FROM users`);
+    res.status(201).json(
+      result.rows
+    );
+  } catch (error) {
+    console.error('Get All users error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const sendEmail = async (req, res) => {
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  try {
+    const { to, subject, html } = req.body;
+    
+    const { data, error } = await resend.emails.send({
+      from: 'EventHub <onboarding@resend.dev>',
+      to,
+      subject,
+      html
+    });
+
+    if (error) return res.status(500).json({ error });
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

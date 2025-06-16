@@ -1,56 +1,73 @@
-import React, { useState } from 'react';
-import { Mail, Users, Send, FileText, Image, Calendar, MapPin, Clock, DollarSign, Eye, X } from 'lucide-react';
+import { useState } from "react";
+import {
+  Mail,
+  Users,
+  Send,
+  FileText,
+  Image,
+  Calendar,
+  MapPin,
+  Clock,
+  DollarSign,
+  Eye,
+  X,
+} from "lucide-react";
+import axios from "axios";
 
 const Announcement = () => {
-  const [emailType, setEmailType] = useState('custom');
-  const [recipientType, setRecipientType] = useState('all');
-  const [selectedEvent, setSelectedEvent] = useState('');
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
+  const [emailType, setEmailType] = useState("custom");
+  const [recipientType, setRecipientType] = useState("all");
+  const [selectedEvent, setSelectedEvent] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const [events] = useState([
     {
       id: 1,
-      title: 'Tech Fest 2025',
-      club: 'Computer Science Club',
-      date: 'June 25, 2025',
-      time: '10:00 AM - 6:00 PM',
-      venue: 'Main Auditorium',
+      title: "Tech Fest 2025",
+      club: "Computer Science Club",
+      date: "June 25, 2025",
+      time: "10:00 AM - 6:00 PM",
+      venue: "Main Auditorium",
       price: 500,
       registrations: 156,
-      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
-      description: 'Join us for the biggest tech event of the year featuring workshops, competitions, and networking opportunities.'
+      image:
+        "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop",
+      description:
+        "Join us for the biggest tech event of the year featuring workshops, competitions, and networking opportunities.",
     },
     {
       id: 2,
-      title: 'Cultural Night',
-      club: 'Arts & Culture Society',
-      date: 'June 28, 2025',
-      time: '7:00 PM - 11:00 PM',
-      venue: 'Open Theatre',
+      title: "Cultural Night",
+      club: "Arts & Culture Society",
+      date: "June 28, 2025",
+      time: "7:00 PM - 11:00 PM",
+      venue: "Open Theatre",
       price: 300,
       registrations: 287,
-      image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop',
-      description: 'Experience an evening of cultural performances, music, and dance celebrating diversity.'
-    }
+      image:
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop",
+      description:
+        "Experience an evening of cultural performances, music, and dance celebrating diversity.",
+    },
   ]);
 
   const handleEventChange = (eventId) => {
     setSelectedEvent(eventId);
-    const event = events.find(e => e.id === parseInt(eventId));
-    if (event && emailType === 'event') {
+    const event = events.find((e) => e.id === parseInt(eventId));
+    if (event && emailType === "event") {
       setSubject(`${event.title} - Event Details`);
     }
   };
 
   const getSelectedEventData = () => {
-    return events.find(e => e.id === parseInt(selectedEvent));
+    return events.find((e) => e.id === parseInt(selectedEvent));
   };
 
   const generateEventEmail = () => {
     const event = getSelectedEventData();
-    if (!event) return '';
+    if (!event) return "";
 
     return `
 Dear Students,
@@ -74,31 +91,76 @@ Event Management Team
     `.trim();
   };
 
-  const handleSendEmail = () => {
-    const emailData = {
-      type: emailType,
-      recipients: recipientType,
-      subject: subject,
-      message: emailType === 'event' ? generateEventEmail() : message,
-      eventId: selectedEvent || null,
-      timestamp: new Date().toISOString()
-    };
+  const handleSendEmail = async () => {
+    // Validation
+    if (
+      !subject ||
+      (emailType === "custom" && !message) ||
+      (emailType === "event" && !selectedEvent)
+    ) {
+      alert("Please fill all required fields");
+      return;
+    }
 
-    console.log('Email Data:', emailData);
-    alert(`Email sent successfully to ${recipientType === 'all' ? 'all students' : 'registered students'}!`);
-    
-    setSubject('');
-    setMessage('');
-    setSelectedEvent('');
+    try {
+      // Get recipient emails
+      let recipientsEmails = [];
+      let recipientCount = 0;
+
+      if (recipientType === "all") {
+        const response = await axios.get("http://localhost:5000/api/users");
+        recipientsEmails = response.data.map((user) => user.email);
+        recipientCount = response.data.length;
+      } else {
+        
+      }
+
+      // Generate email content
+      let emailBody;
+      if (emailType === "event") {
+        emailBody = generateEventEmail();
+      } else {
+        emailBody = message;
+      }
+
+      // Convert to HTML
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          ${emailBody.replace(/\n/g, "<br>")}
+        </div>
+      `;
+
+      console.log("I am here");
+      
+
+      // Send via API route
+      await axios.post('http://localhost:5000/api/users/send-email', {
+        to: recipientsEmails,
+        subject,
+        html: htmlContent
+      });
+
+      alert(`Email sent successfully to ${recipientCount} recipients!`);
+
+      // Reset form
+      setSubject("");
+      setMessage("");
+      setSelectedEvent("");
+    } catch (error) {
+      console.error("Email sending failed:", error);
+      alert(`Failed to send email: ${error.message}`);
+    }
   };
 
   const getRecipientCount = () => {
-    if (recipientType === 'all') return '2,450 students';
+    if (recipientType === "all") return "2,450 students";
     if (selectedEvent) {
       const event = getSelectedEventData();
-      return event ? `${event.registrations} registered students` : '0 students';
+      return event
+        ? `${event.registrations} registered students`
+        : "0 students";
     }
-    return '0 students';
+    return "0 students";
   };
 
   return (
@@ -111,19 +173,27 @@ Event Management Team
                 <Mail className="text-blue-600" size={24} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Send Announcement</h1>
-                <p className="text-gray-600">Send emails to students about events and updates</p>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Send Announcement
+                </h1>
+                <p className="text-gray-600">
+                  Send emails to students about events and updates
+                </p>
               </div>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Email Configuration</h3>
-                  
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Email Configuration
+                  </h3>
+
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Email Type</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email Type
+                      </label>
                       <select
                         value={emailType}
                         onChange={(e) => setEmailType(e.target.value)}
@@ -135,21 +205,28 @@ Event Management Team
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Recipients</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Recipients
+                      </label>
                       <select
                         value={recipientType}
                         onChange={(e) => setRecipientType(e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="all">All Students</option>
-                        <option value="registered">Registered Students Only</option>
+                        <option value="registered">
+                          Registered Students Only
+                        </option>
                       </select>
                     </div>
                   </div>
 
-                  {(emailType === 'event' || recipientType === 'registered') && (
+                  {(emailType === "event" ||
+                    recipientType === "registered") && (
                     <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Event</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Event
+                      </label>
                       <select
                         value={selectedEvent}
                         onChange={(e) => handleEventChange(e.target.value)}
@@ -157,7 +234,7 @@ Event Management Team
                         required
                       >
                         <option value="">Choose an event...</option>
-                        {events.map(event => (
+                        {events.map((event) => (
                           <option key={event.id} value={event.id}>
                             {event.title} - {event.date}
                           </option>
@@ -169,7 +246,9 @@ Event Management Team
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subject
+                    </label>
                     <input
                       type="text"
                       value={subject}
@@ -180,9 +259,11 @@ Event Management Team
                     />
                   </div>
 
-                  {emailType === 'custom' ? (
+                  {emailType === "custom" ? (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Message
+                      </label>
                       <textarea
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
@@ -194,7 +275,9 @@ Event Management Team
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Event Email Preview</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Event Email Preview
+                      </label>
                       <div className="bg-gray-50 border border-gray-300 rounded-lg p-4 min-h-[300px]">
                         {selectedEvent ? (
                           <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
@@ -214,7 +297,11 @@ Event Management Team
                   <button
                     onClick={() => setIsPreviewOpen(true)}
                     className="flex items-center space-x-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    disabled={!subject || (emailType === 'custom' && !message) || (emailType === 'event' && !selectedEvent)}
+                    disabled={
+                      !subject ||
+                      (emailType === "custom" && !message) ||
+                      (emailType === "event" && !selectedEvent)
+                    }
                   >
                     <Eye size={20} />
                     <span>Preview Email</span>
@@ -223,7 +310,11 @@ Event Management Team
                   <button
                     onClick={handleSendEmail}
                     className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={!subject || (emailType === 'custom' && !message) || (emailType === 'event' && !selectedEvent)}
+                    disabled={
+                      !subject ||
+                      (emailType === "custom" && !message) ||
+                      (emailType === "event" && !selectedEvent)
+                    }
                   >
                     <Send size={20} />
                     <span>Send Email</span>
@@ -237,28 +328,36 @@ Event Management Team
                     <Users size={20} />
                     <span>Email Summary</span>
                   </h3>
-                  
+
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-blue-700">Recipients:</span>
-                      <span className="font-medium text-blue-900">{getRecipientCount()}</span>
+                      <span className="font-medium text-blue-900">
+                        {getRecipientCount()}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-blue-700">Email Type:</span>
-                      <span className="font-medium text-blue-900 capitalize">{emailType}</span>
+                      <span className="font-medium text-blue-900 capitalize">
+                        {emailType}
+                      </span>
                     </div>
                     {selectedEvent && (
                       <div className="flex justify-between">
                         <span className="text-blue-700">Event:</span>
-                        <span className="font-medium text-blue-900">{getSelectedEventData()?.title}</span>
+                        <span className="font-medium text-blue-900">
+                          {getSelectedEventData()?.title}
+                        </span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {selectedEvent && emailType === 'event' && (
+                {selectedEvent && emailType === "event" && (
                   <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-900 mb-3">Selected Event</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      Selected Event
+                    </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center space-x-2 text-gray-600">
                         <Calendar size={14} />
@@ -281,7 +380,9 @@ Event Management Team
                 )}
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-yellow-800 mb-2">Email Guidelines</h4>
+                  <h4 className="font-semibold text-yellow-800 mb-2">
+                    Email Guidelines
+                  </h4>
                   <ul className="text-sm text-yellow-700 space-y-1">
                     <li>• Keep subject lines clear and concise</li>
                     <li>• Include all relevant event details</li>
@@ -298,15 +399,7 @@ Event Management Team
       {isPreviewOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">Email Preview</h3>
-              <button
-                onClick={() => setIsPreviewOpen(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
+            {/* ... modal header ... */}
             <div className="p-6 overflow-y-auto flex-1">
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <div className="mb-4">
@@ -314,11 +407,16 @@ Event Management Team
                   <div className="font-medium text-gray-900">{subject}</div>
                 </div>
                 <div className="text-sm text-gray-600 mb-1">Message:</div>
-                <div className="bg-white p-4 rounded border">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
-                    {emailType === 'event' ? generateEventEmail() : message}
-                  </pre>
+                <div
+                  className="bg-white p-4 rounded border"
+                  dangerouslySetInnerHTML={{
+                    __html: `
+                <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                  ${(emailType === "event" ? generateEventEmail() : message).replace(/\n/g, "<br>")}
                 </div>
+              `,
+                  }}
+                />
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -10,6 +10,9 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [generalError, setGeneralError] = useState('');
+
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -22,19 +25,20 @@ const Login = () => {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+    if (generalError) setGeneralError('');
   };
 
   const validateForm = () => {
     const newErrors = {};
     
     if (!formData.admin_id.trim()) {
-      newErrors.admin_id = 'Email or registration number is required';
+      newErrors.admin_id = 'Admin ID is required';
     }
     
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 4) {
+      newErrors.password = 'Password must be at least 4 characters';
     }
     
     setErrors(newErrors);
@@ -42,21 +46,55 @@ const Login = () => {
   };
 
   const handleFormSubmit = (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      setIsLoading(true);
-      console.log('Login Form submitted:', formData);
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
-        // Handle login logic
-      }, 1500);
-    }
-  };
+  e.preventDefault();
+  setGeneralError('');
+
+  if (validateForm()) {
+    setIsLoading(true);
+
+    // Make API call to login endpoint
+    fetch('http://localhost:5000/api/auth/admin-login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        admin_id: formData.admin_id,
+        password: formData.password
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      setIsLoading(false);
+      if (data.success) {
+        // Store authentication token
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('isAdminAuthenticated', 'true');
+        navigate('/');
+      } else {
+        setGeneralError(data.message || 'Login failed. Please try again.');
+      }
+    })
+    .catch(error => {
+      setIsLoading(false);
+      setGeneralError('An error occurred. Please try again.');
+    });
+  }
+};
 
   useEffect(() => {
+    // Check if already authenticated
+    if (localStorage.getItem('isAdminAuthenticated') === 'true') {
+      navigate('/');
+    }
+    
     window.scrollTo(0, 0);
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 px-4">
@@ -66,6 +104,12 @@ const Login = () => {
             Admin Login
           </h2> 
         </div>
+
+        {generalError && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+            <p className="text-red-700 font-medium">{generalError}</p>
+          </div>
+        )}
 
         <form className="space-y-5" onSubmit={handleFormSubmit}>
           <div>

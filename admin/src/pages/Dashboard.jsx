@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Users, Calendar, TrendingUp, DollarSign, Award, Activity, Mail, UserCheck, Clock, Target, BarChart3, PieChart, Eye } from 'lucide-react';
 
 const Dashboard = () => {
