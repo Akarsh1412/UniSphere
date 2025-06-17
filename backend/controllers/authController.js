@@ -127,11 +127,16 @@ export const adminLogin = async (req, res) => {
     if (!admin_id || !password) {
       return res.status(400).json({ message: 'Admin ID and password are required' });
     }
-
+    
     const result = process.env.ADMIN_ID === admin_id && process.env.ADMIN_PASSWORD === password;
+    
     if (result) {
       // Successful admin login
-      const token = generateToken({ userId: admin_id, role: 'admin' });
+      const payload = {
+          userId: admin_id, // Use the admin_id as the userId
+          role: 'admin'    // Explicitly set the role
+      };
+      const token = jwt.sign(payload, jwtSecret, { expiresIn: jwtExpire });
       res.json({
         success: true,
         message: 'Admin login successful',

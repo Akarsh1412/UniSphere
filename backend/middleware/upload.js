@@ -116,3 +116,57 @@ export const uploadMultiple = (fieldName, maxCount = 5) => {
     });
   };
 };
+export const uploadFields = (fields) => {
+  return async (req, res, next) => {
+    const uploadMiddleware = upload.fields(fields);
+    uploadMiddleware(req, res, async (err) => {
+      if (err) {
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({
+              success: false,
+              message: 'File size too large. Maximum 5MB allowed.'
+            });
+          }
+        }
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
+      }
+
+      try {
+        if (req.files) {
+          for (const field of fields) {
+            const files = req.files[field.name];
+            if (files && files.length > 0) {
+              if (files.length === 1) {
+                const file = files[0];
+                const b64 = Buffer.from(file.buffer).toString('base64');
+                const dataURI = `data:${file.mimetype};base64,${b64}`;
+                const imageUrl = await uploadImage(dataURI, 'unisphere');
+                req.body[field.name] = imageUrl;
+              } else {
+                const imageUrls = [];
+                for (const file of files) {
+                  const b64 = Buffer.from(file.buffer).toString('base64');
+                  const dataURI = `data:${file.mimetype};base64,${b64}`;
+                  const imageUrl = await uploadImage(dataURI, 'unisphere');
+                  imageUrls.push(imageUrl);
+                }
+                req.body[field.name] = imageUrls;
+              }
+            }
+          }
+        }
+        next();
+      } catch (error) {
+        console.error('Image upload error:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Image upload failed'
+        });
+      }
+    });
+  };
+};

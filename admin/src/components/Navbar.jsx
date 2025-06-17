@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Home, PlusSquare, List, Megaphone, LogIn, LogOut } from 'lucide-react';
+import { Menu, X, Home, PlusSquare, List, Megaphone, LogIn, LogOut, Users } from 'lucide-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,6 +11,7 @@ const Navbar = () => {
     { name: 'Dashboard', icon: Home, href: '/' },
     { name: 'Add', icon: PlusSquare, href: '/add' },
     { name: 'List', icon: List, href: '/list' },
+    { name: 'Clubs', icon: Users, href: '/clubs' },
     { name: 'Announcements', icon: Megaphone, href: '/announcement' },
   ];
 
@@ -20,14 +21,13 @@ const Navbar = () => {
     localStorage.removeItem('isAdminAuthenticated');
     localStorage.removeItem('adminToken');
     navigate('/login');
-    setIsOpen(false); // Close mobile menu after logout
+    setIsOpen(false);
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200/20 shadow-lg">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200/20 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 group">
             <div className="relative">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center transform group-hover:scale-110 transition-all duration-300 shadow-lg group-hover:shadow-xl">

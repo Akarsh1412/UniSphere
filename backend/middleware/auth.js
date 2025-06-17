@@ -10,6 +10,7 @@ export const authenticateToken = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
     
     if (!token) {
+      //console.log(req)
       return res.status(401).json({ 
         success: false, 
         message: 'Access token required' 
@@ -17,7 +18,13 @@ export const authenticateToken = async (req, res, next) => {
     }
     
     const decoded = jwt.verify(token, jwtSecret);
-    
+    if (decoded.role === 'admin') {
+      req.user = {
+        userId: decoded.userId,
+        role: 'admin',
+      };
+      return next();
+    }
     // Verify user still exists
     const userResult = await pool.query(
       'SELECT id, role FROM users WHERE id = $1',

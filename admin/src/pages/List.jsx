@@ -1,68 +1,31 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, Users, Eye, UserCheck, MapPin, Clock, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const List = () => {
   const navigate = useNavigate();
-  
-  const [events] = useState([
-    {
-      id: 1,
-      title: 'Tech Fest 2025',
-      club: 'Computer Science Club',
-      date: 'June 25, 2025',
-      time: '10:00 AM - 6:00 PM',
-      venue: 'Main Auditorium',
-      price: 500,
-      capacity: 200,
-      registrations: 156,
-      attended: 142,
-      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
-      status: 'Active'
-    },
-    {
-      id: 2,
-      title: 'Cultural Night',
-      club: 'Arts & Culture Society',
-      date: 'June 28, 2025',
-      time: '7:00 PM - 11:00 PM',
-      venue: 'Open Theatre',
-      price: 300,
-      capacity: 300,
-      registrations: 287,
-      attended: 275,
-      image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop',
-      status: 'Active'
-    },
-    {
-      id: 3,
-      title: 'Sports Championship',
-      club: 'Athletic Club',
-      date: 'July 2, 2025',
-      time: '9:00 AM - 5:00 PM',
-      venue: 'Sports Complex',
-      price: 200,
-      capacity: 150,
-      registrations: 134,
-      attended: 128,
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-      status: 'Completed'
-    },
-    {
-      id: 4,
-      title: 'Innovation Summit',
-      club: 'Entrepreneurship Club',
-      date: 'July 5, 2025',
-      time: '10:00 AM - 4:00 PM',
-      venue: 'Conference Hall',
-      price: 400,
-      capacity: 100,
-      registrations: 89,
-      attended: 0,
-      image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=300&fit=crop',
-      status: 'Upcoming'
-    }
-  ]);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        const response = await fetch('http://localhost:5000/api/events', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch events');
+        const data = await response.json();
+        setEvents(data.events || []);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvents();
+  }, []);
 
   const handleViewEvent = (eventId) => {
     navigate(`/list/${eventId}`);
@@ -85,6 +48,22 @@ const List = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-gray-700">Loading events...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-red-700">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -96,7 +75,6 @@ const List = () => {
                 Total Events: {events.length}
               </div>
             </div>
-
             <div className="space-y-4">
               {events.map((event) => (
                 <div key={event.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
@@ -109,27 +87,24 @@ const List = () => {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-3 mb-2">
                           <h3 className="text-xl font-bold text-gray-900 truncate">
                             {event.title}
                           </h3>
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(event.status)}`}>
-                            {event.status}
+                            {event.status || 'Upcoming'}
                           </span>
                         </div>
-                        
-                        <p className="text-sm text-gray-600 mb-3">{event.club}</p>
-                        
+                        <p className="text-sm text-gray-600 mb-3">{event.club_name || '-'}</p>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
                           <div className="flex items-center space-x-1">
                             <Calendar size={14} />
-                            <span>{event.date}</span>
+                            <span>{new Date(event.date).toLocaleDateString()}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Clock size={14} />
-                            <span>{event.time}</span>
+                            <span>{event.time_start}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <MapPin size={14} />
@@ -142,7 +117,6 @@ const List = () => {
                         </div>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-6">
                       <div className="text-center">
                         <div className="flex items-center space-x-1 text-sm text-gray-600 mb-1">
@@ -150,28 +124,9 @@ const List = () => {
                           <span>Registrations</span>
                         </div>
                         <div className="text-lg font-bold text-gray-900">
-                          {event.registrations}/{event.capacity}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {Math.round((event.registrations / event.capacity) * 100)}% filled
+                          {event.registrations || 0}/{event.capacity}
                         </div>
                       </div>
-
-                      {event.status === 'Completed' && (
-                        <div className="text-center">
-                          <div className="flex items-center space-x-1 text-sm text-gray-600 mb-1">
-                            <UserCheck size={14} />
-                            <span>Attended</span>
-                          </div>
-                          <div className="text-lg font-bold text-green-600">
-                            {event.attended}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {Math.round((event.attended / event.registrations) * 100)}% attendance
-                          </div>
-                        </div>
-                      )}
-
                       <div className="flex flex-col space-y-2">
                         <button
                           onClick={() => handleViewEvent(event.id)}
@@ -180,21 +135,21 @@ const List = () => {
                           <Eye size={16} />
                           <span>View</span>
                         </button>
-                        
-                        {(event.status === 'Active' || event.status === 'Completed') && (
-                          <button
-                            onClick={() => handleAttendance(event.id)}
-                            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-                          >
-                            <UserCheck size={16} />
-                            <span>Attendance</span>
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleAttendance(event.id)}
+                          className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <UserCheck size={16} />
+                          <span>Attendance</span>
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
+              {events.length === 0 && (
+                <div className="text-center text-gray-500 py-10">No events found.</div>
+              )}
             </div>
           </div>
         </div>

@@ -5,18 +5,17 @@ import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import dotenv from 'dotenv';
 
-// Import routes
 import authRoutes from './routes/auth.js';
 import clubRoutes from './routes/clubs.js';
 import eventRoutes from './routes/events.js';
 import communityRoutes from './routes/community.js';
 import userRoutes from './routes/users.js';
+import emailRoutes from './routes/email.js';  
 
 dotenv.config();
 
 const app = express();
 
-// Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -28,7 +27,6 @@ app.use(helmet({
   },
 }));
 
-// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -47,7 +45,15 @@ const authLimiter = rateLimit({
   }
 });
 
-// CORS configuration
+const emailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: {
+    success: false,
+    message: 'Too many email requests, please try again later.'
+  }
+});
+
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? process.env.FRONTEND_URL 
@@ -56,24 +62,22 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-// Apply middleware
 app.use(compression());
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// Apply rate limiting
 app.use('/api/auth', authLimiter);
+app.use('/api/email', emailLimiter);
 app.use('/api', limiter);
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/clubs', clubRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/email', emailRoutes);
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
     success: true,
@@ -83,7 +87,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API documentation endpoint
 app.get('/api', (req, res) => {
   res.json({
     success: true,
@@ -94,12 +97,12 @@ app.get('/api', (req, res) => {
       clubs: '/api/clubs',
       events: '/api/events',
       community: '/api/community',
-      users: '/api/users'
+      users: '/api/users',
+      email: '/api/email' 
     }
   });
 });
 
-// Global error handling middleware
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err);
   
@@ -134,7 +137,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler - CORRECT SYNTAX FOR EXPRESS V5
 app.use((req, res) => {
   res.status(404).json({ 
     success: false,

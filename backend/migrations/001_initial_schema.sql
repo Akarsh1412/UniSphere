@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS clubs (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name TEXT NOT NULL,
     description TEXT,
     category VARCHAR(100),
     image VARCHAR(500),
@@ -23,10 +23,10 @@ CREATE TABLE IF NOT EXISTS clubs (
     rating DECIMAL(3,2) DEFAULT 0,
     established VARCHAR(4),
     admin_id INTEGER REFERENCES users(id),
-    website VARCHAR(255),
-    instagram VARCHAR(255),
-    twitter VARCHAR(255),
-    facebook VARCHAR(255),
+    website TEXT,
+    instagram TEXT,
+    twitter TEXT,
+    facebook TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -42,18 +42,23 @@ CREATE TABLE IF NOT EXISTS club_memberships (
 
 CREATE TABLE IF NOT EXISTS events (
     id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
+    title TEXT NOT NULL,
     description TEXT,
     club_id INTEGER REFERENCES clubs(id),
     date DATE NOT NULL,
     time_start TIME NOT NULL,
     time_end TIME,
-    venue VARCHAR(255),
+    venue TEXT,
     price DECIMAL(10,2) DEFAULT 0,
     capacity INTEGER,
     volunteers_needed INTEGER DEFAULT 0,
-    image VARCHAR(500),
+    attendance INTEGER DEFAULT 0 NOT NULL,
+    image TEXT,
     featured BOOLEAN DEFAULT false,
+    guests TEXT,
+    coordinators TEXT,
+    schedule TEXT,
+    requirements TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -97,7 +102,6 @@ CREATE TABLE IF NOT EXISTS likes (
     UNIQUE(user_id, post_id)
 );
 
--- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_registration_number ON users(registration_number);
 CREATE INDEX IF NOT EXISTS idx_clubs_category ON clubs(category);

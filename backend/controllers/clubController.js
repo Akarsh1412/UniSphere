@@ -241,3 +241,49 @@ export const getClubCategories = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+export const createClub = async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      category,
+      website,
+      instagram,
+      twitter,
+      facebook
+    } = req.body;
+
+    let image = null;
+    let cover_image = null;
+
+    if (req.files) {
+      if (req.files.image && req.files.image[0]) {
+        image = req.files.image[0].path || req.files.image[0].location || null;
+      }
+      if (req.files.cover_image && req.files.cover_image[0]) {
+        cover_image = req.files.cover_image[0].path || req.files.cover_image[0].location || null;
+      }
+    }
+    if (req.body.image && typeof req.body.image === 'string') image = req.body.image;
+    if (req.body.cover_image && typeof req.body.cover_image === 'string') cover_image = req.body.cover_image;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Club name is required.' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO clubs (name, description, category, image, cover_image, website, instagram, twitter, facebook)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING *`,
+      [name, description, category, image, cover_image, website, instagram, twitter, facebook]
+    );
+
+    res.status(201).json({
+      success: true,
+      club: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Create club error:', error);
+    res.status(500).json({ success: false, message: 'Server error while creating club' });
+  }
+};

@@ -258,3 +258,145 @@ export const getUserEvents = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+export const createEvent = async (req, res) => {
+  try {
+    const {
+      title,
+      club_id,
+      date,
+      time_start,
+      time_end,
+      venue,
+      price,
+      volunteers_needed,
+      capacity,
+      description,
+      guests,
+      coordinators,
+      schedule,
+      requirements
+    } = req.body;
+
+    // ...validation code...
+
+    const image = req.body.image || null;
+
+    const clubResult = await pool.query('SELECT id FROM clubs WHERE id = $1', [club_id]);
+    if (clubResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Club not found.' });
+    }
+
+    let parsedGuests, parsedCoordinators, parsedSchedule, parsedRequirements;
+    try {
+      parsedGuests = guests ? JSON.parse(guests) : [];
+      parsedCoordinators = coordinators ? JSON.parse(coordinators) : [];
+      parsedSchedule = schedule ? JSON.parse(schedule) : [];
+      parsedRequirements = requirements ? JSON.parse(requirements) : [];
+    } catch (parseError) {
+      return res.status(400).json({ success: false, message: 'Invalid JSON data in request.' });
+    }
+
+    // Use safe parsing helpers for numbers as before
+    const safeParseInt = (value) => {
+      const parsed = parseInt(value, 10);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+    const safeParseFloat = (value) => {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    const newEvent = await pool.query(
+      `INSERT INTO events (
+        title, club_id, date, time_start, time_end, venue, price, 
+        volunteers_needed, capacity, image, description, guests, 
+        coordinators, schedule, requirements
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *`,
+      [
+        title,
+        club_id,
+        date,
+        time_start,
+        time_end,
+        venue,
+        safeParseFloat(price),
+        safeParseInt(volunteers_needed),
+        safeParseInt(capacity),
+        image,
+        description,
+        JSON.stringify(parsedGuests),
+        JSON.stringify(parsedCoordinators),
+        JSON.stringify(parsedSchedule),
+        JSON.stringify(parsedRequirements)
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Event created successfully!',
+      event: newEvent.rows[0]
+    });
+  } catch (error) {
+    console.error('Create event error:', error);
+    res.status(500).json({ success: false, message: 'Server error while creating event' });
+  }
+};
+export const getEventRegistrations = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT er.user_id, er.is_present, u.name, u.email, u.registration_number
+       FROM event_registrations er
+       JOIN users u ON er.user_id = u.id
+       WHERE er.event_id = $1
+       ORDER BY u.name`,
+      [id]
+    );
+    res.json({ success: true, registrations: result.rows });
+  } catch (error) {
+    console.error('Get event registrations error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const updateAttendance = async (req, res) => {
+  const { id } = req.params;
+  const attendees = req.body.attendees; // Expects an array: [{ userId, isPresent }]
+
+  if (!Array.isArray(attendees)) {
+    return res.status(400).json({ success: false, message: 'Invalid data format. Expected an array of attendees.' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Update each user's attendance status in event_registrations
+    for (const attendee of attendees) {
+      await client.query(
+        'UPDATE event_registrations SET is_present = $1 WHERE event_id = $2 AND user_id = $3',
+        [attendee.isPresent, id, attendee.userId]
+      );
+    }
+
+    // Recalculate the total number of present attendees
+    const presentCountResult = await client.query(
+      'SELECT COUNT(*) FROM event_registrations WHERE event_id = $1 AND is_present = TRUE',
+      [id]
+    );
+    const presentCount = parseInt(presentCountResult.rows[0].count, 10);
+
+    // Update the attendance column in the events table
+    await client.query('UPDATE events SET attendance = $1 WHERE id = $2', [presentCount, id]);
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: 'Attendance updated successfully.', newAttendanceCount: presentCount });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Update attendance error:', error);
+    res.status(500).json({ success: false, message: 'Server error while updating attendance' });
+  } finally {
+    client.release();
+  }
+};
