@@ -21,7 +21,7 @@ const router = createBrowserRouter(
       <Route path='events/:id' element={<EventDetail />} /> 
       <Route path='community' element={<Community />} />
       <Route path='clubs' element={<Clubs />} />
-      <Route path='clubs/:clubid' element={<ClubsDetails />} />
+      <Route path='clubs/:clubId' element={<ClubsDetails />} />
       <Route path='login' element={<Login />} />
       <Route path='signup' element={<Signup />} />
       <Route path='profile' element={<Profile />} />

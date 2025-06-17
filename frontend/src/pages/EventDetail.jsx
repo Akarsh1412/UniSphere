@@ -2,88 +2,70 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Calendar, Clock, MapPin, Users, UserPlus, ArrowLeft, Star, Share2, CreditCard } from "lucide-react";
 import Card from "../components/Cards";
+import axios from "axios";
 
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedRegistration, setSelectedRegistration] = useState("student");
   const [paymentMethod, setPaymentMethod] = useState("stripe");
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const event = {
-    id: parseInt(id),
-    title: "Tech Fest 2025",
-    club: "Computer Science Club",
-    date: "June 25, 2025",
-    time: "10:00 AM - 6:00 PM",
-    venue: "Main Auditorium, Block A",
-    price: 299,
-    volunteersNeeded: 15,
-    registrations: 234,
-    capacity: 500,
-    image:
-      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=600&fit=crop",
-    description:
-      "Join the biggest tech festival of the year featuring competitions, workshops, and networking opportunities. This event brings together students, professionals, and industry leaders to celebrate innovation and technology. Experience hands-on workshops, exciting competitions, and inspiring keynote sessions.",
-    guests: [
-      {
-        name: "Dr. Sarah Chen",
-        role: "CTO, TechCorp",
-        image:
-          "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop",
-        bio: "Leading AI researcher and entrepreneur",
-      },
-      {
-        name: "Mike Johnson",
-        role: "Senior Developer, Google",
-        image:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
-        bio: "Expert in cloud computing and scalable systems",
-      },
-      {
-        name: "Lisa Rodriguez",
-        role: "Product Manager, Microsoft",
-        image:
-          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-        bio: "Specializes in user experience and product strategy",
-      },
-    ],
-    coordinators: [
-      {
-        name: "Alex Kumar",
-        role: "Event Head",
-        phone: "+91 9876543210",
-        email: "alex.kumar@university.edu",
-        image:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
-      },
-      {
-        name: "Priya Sharma",
-        role: "Technical Lead",
-        phone: "+91 9876543211",
-        email: "priya.sharma@university.edu",
-        image:
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop",
-      },
-    ],
-    schedule: [
-      { time: "10:00 AM", activity: "Registration & Welcome" },
-      { time: "11:00 AM", activity: "Opening Ceremony" },
-      { time: "12:00 PM", activity: "Keynote: Future of AI" },
-      { time: "1:00 PM", activity: "Lunch Break" },
-      { time: "2:00 PM", activity: "Technical Workshops" },
-      { time: "4:00 PM", activity: "Coding Competition" },
-      { time: "5:30 PM", activity: "Networking Session" },
-      { time: "6:00 PM", activity: "Closing Ceremony" },
-    ],
-    requirements: [
-      "Valid student ID card",
-      "Laptop for workshop sessions",
-      "Notebook and pen",
-      "Comfortable clothing",
-    ],
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchEvent();
+  }, [id]);
+
+  const fetchEvent = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`http://localhost:5000/api/events/${id}`);
+      setEvent(response.data.event);
+      setError(null);
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      setError("Failed to load event details. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Helper function to format time
+  const formatTime = (timeString) => {
+    const [hours, minutes] = timeString.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours), parseInt(minutes));
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  // Helper function to parse JSON strings safely
+  const parseJSONArray = (jsonString, fallback = []) => {
+    try {
+      return JSON.parse(jsonString);
+    } catch {
+      return fallback;
+    }
   };
 
   const handleRegistration = () => {
+    if (!event) return;
+
     if (selectedRegistration === "volunteer") {
       alert(
         "Volunteer registration submitted! You will receive confirmation via email."
@@ -92,7 +74,9 @@ const EventDetail = () => {
     }
 
     const amount =
-      selectedRegistration === "student" ? event.price : event.price * 1.5;
+      selectedRegistration === "student" 
+        ? parseFloat(event.price) 
+        : parseFloat(event.price) * 1.5;
 
     if (paymentMethod === "stripe") {
       window.open(
@@ -110,6 +94,8 @@ const EventDetail = () => {
   };
 
   const handleShare = () => {
+    if (!event) return;
+
     if (navigator.share) {
       navigator.share({
         title: event.title,
@@ -122,9 +108,57 @@ const EventDetail = () => {
     }
   };
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [id]);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading event details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => navigate("/events")}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Back to Events
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Event not found</p>
+          <button
+            onClick={() => navigate("/events")}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Back to Events
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const guests = parseJSONArray(event.guests);
+  const coordinators = parseJSONArray(event.coordinators);
+  const schedule = parseJSONArray(event.schedule);
+  const requirements = parseJSONArray(event.requirements);
+
+  const registrationsCount = parseInt(event.registrations_count) || 0;
+  const capacity = event.capacity || 0;
+  const volunteersCount = parseInt(event.volunteers_count) || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -156,7 +190,7 @@ const EventDetail = () => {
                       {event.title}
                     </h1>
                     <p className="text-lg text-blue-600 font-semibold">
-                      {event.club}
+                      {event.club_name}
                     </p>
                   </div>
                   <button
@@ -171,11 +205,11 @@ const EventDetail = () => {
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3 text-gray-600">
                       <Calendar size={20} className="text-blue-600" />
-                      <span>{event.date}</span>
+                      <span>{formatDate(event.date)}</span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-600">
                       <Clock size={20} className="text-blue-600" />
-                      <span>{event.time}</span>
+                      <span>{formatTime(event.time_start)} - {formatTime(event.time_end)}</span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-600">
                       <MapPin size={20} className="text-blue-600" />
@@ -186,16 +220,16 @@ const EventDetail = () => {
                     <div className="flex items-center space-x-3 text-gray-600">
                       <Users size={20} className="text-blue-600" />
                       <span>
-                        {event.registrations} / {event.capacity} registered
+                        {registrationsCount} / {capacity} registered
                       </span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-600">
                       <UserPlus size={20} className="text-green-600" />
-                      <span>{event.volunteersNeeded} volunteers needed</span>
+                      <span>{event.volunteers_needed} volunteers needed</span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-600">
                       <Star size={20} className="text-yellow-600" />
-                      <span>4.8/5 rating (124 reviews)</span>
+                      <span>New Event</span>
                     </div>
                   </div>
                 </div>
@@ -205,14 +239,12 @@ const EventDetail = () => {
                     <div
                       className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-300"
                       style={{
-                        width: `${
-                          (event.registrations / event.capacity) * 100
-                        }%`,
+                        width: `${capacity > 0 ? (registrationsCount / capacity) * 100 : 0}%`,
                       }}
                     ></div>
                   </div>
                   <p className="text-sm text-gray-500 mt-2">
-                    {event.capacity - event.registrations} spots remaining
+                    {Math.max(0, capacity - registrationsCount)} spots remaining
                   </p>
                 </div>
 
@@ -227,80 +259,72 @@ const EventDetail = () => {
               </div>
             </Card>
 
-            <Card className="p-8">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-                Event Schedule
-              </h3>
-              <div className="space-y-4">
-                {event.schedule.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
-                  >
-                    <div className="text-blue-600 font-semibold min-w-[80px]">
-                      {item.time}
+            {schedule.length > 0 && (
+              <Card className="p-8">
+                <h3 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Event Schedule
+                </h3>
+                <div className="space-y-4">
+                  {schedule.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
+                    >
+                      <div className="text-gray-800">{item}</div>
                     </div>
-                    <div className="text-gray-800">{item.activity}</div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+                  ))}
+                </div>
+              </Card>
+            )}
 
-            <Card className="p-8">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-                Featured Guests
-              </h3>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {event.guests.map((guest, index) => (
-                  <div key={index} className="text-center">
-                    <img
-                      src={guest.image}
-                      alt={guest.name}
-                      className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-                    />
-                    <h4 className="font-semibold text-gray-900">
-                      {guest.name}
-                    </h4>
-                    <p className="text-blue-600 text-sm mb-2">{guest.role}</p>
-                    <p className="text-gray-600 text-sm">{guest.bio}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <Card className="p-8">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-                Event Coordinators
-              </h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                {event.coordinators.map((coordinator, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
-                  >
-                    <img
-                      src={coordinator.image}
-                      alt={coordinator.name}
-                      className="w-16 h-16 rounded-full object-cover"
-                    />
-                    <div>
+            {guests.length > 0 && (
+              <Card className="p-8">
+                <h3 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Featured Guests
+                </h3>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {guests.map((guest, index) => (
+                    <div key={index} className="text-center">
+                      <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-gray-200 flex items-center justify-center">
+                        <Users size={32} className="text-gray-400" />
+                      </div>
                       <h4 className="font-semibold text-gray-900">
-                        {coordinator.name}
+                        {guest}
                       </h4>
-                      <p className="text-blue-600 text-sm">
-                        {coordinator.role}
-                      </p>
-                      <p className="text-gray-600 text-sm">
-                        {coordinator.phone}
-                      </p>
-                      <p className="text-gray-600 text-sm">
-                        {coordinator.email}
-                      </p>
+                      <p className="text-blue-600 text-sm mb-2">Guest Speaker</p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {coordinators.length > 0 && (
+              <Card className="p-8">
+                <h3 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Event Coordinators
+                </h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {coordinators.map((coordinator, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                        <Users size={24} className="text-gray-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">
+                          {coordinator}
+                        </h4>
+                        <p className="text-blue-600 text-sm">
+                          Event Coordinator
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -327,7 +351,7 @@ const EventDetail = () => {
                         className="text-blue-600 focus:ring-blue-500"
                       />
                       <span className="ml-2 text-sm">
-                        Student - ₹{event.price}
+                        Student - ₹{parseFloat(event.price)}
                       </span>
                     </label>
                     <label className="flex items-center">
@@ -342,7 +366,7 @@ const EventDetail = () => {
                         className="text-blue-600 focus:ring-blue-500"
                       />
                       <span className="ml-2 text-sm">
-                        General - ₹{Math.round(event.price * 1.5)}
+                        General - ₹{Math.round(parseFloat(event.price) * 1.5)}
                       </span>
                     </label>
                     <label className="flex items-center">
@@ -410,22 +434,24 @@ const EventDetail = () => {
                   ? "Register as Volunteer"
                   : `Proceed to Pay ₹${
                       selectedRegistration === "student"
-                        ? event.price
-                        : Math.round(event.price * 1.5)
+                        ? parseFloat(event.price)
+                        : Math.round(parseFloat(event.price) * 1.5)
                     }`}
               </button>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                What to Bring
-              </h3>
-              <ul className="list-disc list-inside text-gray-600 space-y-2">
-                {event.requirements.map((req, index) => (
-                  <li key={index}>{req}</li>
-                ))}
-              </ul>
-            </Card>
+            {requirements.length > 0 && (
+              <Card className="p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                  What to Bring
+                </h3>
+                <ul className="list-disc list-inside text-gray-600 space-y-2">
+                  {requirements.map((req, index) => (
+                    <li key={index}>{req}</li>
+                  ))}
+                </ul>
+              </Card>
+            )}
           </div>
         </div>
       </div>

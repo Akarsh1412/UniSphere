@@ -1,101 +1,29 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRight, Calendar, Users, Star, TrendingUp } from 'lucide-react';
 import Card from '../components/Cards';
+import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Home = () => {
   const navigate = useNavigate();
-  const upcomingEvents = [
-    {
-      id: 1,
-      title: 'Tech Fest 2025',
-      club: 'Computer Science Club',
-      date: 'June 25, 2025',
-      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop'
-    },
-    {
-      id: 2,
-      title: 'Cultural Night',
-      club: 'Arts & Culture Society',
-      date: 'June 28, 2025',
-      image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop'
-    },
-    {
-      id: 3,
-      title: 'Sports Championship',
-      club: 'Athletic Club',
-      date: 'July 2, 2025',
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop'
-    },
-    {
-      id: 4,
-      title: 'Innovation Summit',
-      club: 'Entrepreneurship Club',
-      date: 'July 5, 2025',
-      image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=300&fit=crop'
-    },
-    {
-      id:5,
-      title: 'Tech Fest 2025',
-      club: 'Computer Science Club',
-      date: 'June 25, 2025',
-      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop'
-    },
-    {
-      id: 6,
-      title: 'Cultural Night',
-      club: 'Arts & Culture Society',
-      date: 'June 28, 2025',
-      image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop'
-    },
-    {
-      id: 7,
-      title: 'Sports Championship',
-      club: 'Athletic Club',
-      date: 'July 2, 2025',
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop'
-    },
-    {
-      id: 8,
-      title: 'Innovation Summit',
-      club: 'Entrepreneurship Club',
-      date: 'July 5, 2025',
-      image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=300&fit=crop'
-    }
-  ];
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [featuredClubs, setFeaturedClubs] = useState([]);
 
-  const featuredClubs = [
-    {
-      name: 'Robotics Club',
-      members: 234,
-      image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=300&h=200&fit=crop'
-    },
-    {
-      name: 'Photography Club',
-      members: 189,
-      image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=300&h=200&fit=crop'
-    },
-    {
-      name: 'Debate Society',
-      members: 156,
-      image: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=300&h=200&fit=crop'
-    },
-    {
-      name: 'Robotics Club',
-      members: 234,
-      image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=300&h=200&fit=crop'
-    },
-    {
-      name: 'Photography Club',
-      members: 189,
-      image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=300&h=200&fit=crop'
-    },
-    {
-      name: 'Debate Society',
-      members: 156,
-      image: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=300&h=200&fit=crop'
-    }
-  ];
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const eventsResponse = await axios.get('http://localhost:5000/api/events');
+        const clubsResponse = await axios.get('http://localhost:5000/api/clubs');
+        setUpcomingEvents(eventsResponse.data.events);
+        setFeaturedClubs(clubsResponse.data.clubs);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const stats = [
     { icon: Calendar, label: 'Active Events', value: '47+' },
@@ -191,8 +119,8 @@ const Home = () => {
                       <h3 className="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
                         {event.title}
                       </h3>
-                      <p className="text-sm text-gray-500">{event.club}</p>
-                      <p className="text-sm text-blue-600 font-medium">{event.date}</p>
+                      <p className="text-sm text-gray-500">{event.club_name}</p>
+                      <p className="text-sm text-blue-600 font-medium">{event.time_start}</p>
                     </div>
                     <button onClick={() => handleViewEvent(event.id)}
                     className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300">
@@ -227,7 +155,7 @@ const Home = () => {
                   <h3 className="font-bold text-xl text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
                     {club.name}
                   </h3>
-                  <p className="text-gray-600 mb-4">{club.members} members</p>
+                  <p className="text-gray-600 mb-4">{club.members_count} members</p>
                   <div className="mt-auto">
                     <button 
                       onClick={() => handleViewClub(club.id)}

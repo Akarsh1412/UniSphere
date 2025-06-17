@@ -1,135 +1,146 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 import StatCard from "../components/StatCard";
 import EventCard from "../components/EventCard";
-import { ArrowLeft, Users, Star, Calendar, MapPin, Crown, Mail, Phone, Globe, Instagram, Twitter, Facebook, Award, Clock, Image, UserPlus } from "lucide-react";
+import { ArrowLeft, Users, Star, Calendar, MapPin, Crown, Mail, Phone, Globe, Instagram, Twitter, Facebook, Award, Clock, Image, UserPlus, Loader, AlertCircle } from "lucide-react";
 
 const ClubDetails = () => {
   const { clubId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [club, setClub] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const clubsData = {
-    1: {
-      id: 1,
-      name: "Robotics Club",
-      members: 234,
-      category: "Technology",
-      description:
-        "Building the future through robotics and automation. Our club focuses on creating innovative robotic solutions while fostering a community of tech enthusiasts.",
-      image:
-        "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&h=400&fit=crop",
-      coverImage:
-        "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=1200&h=300&fit=crop",
-      featured: true,
-      rating: 4.8,
-      established: "2019",
-      admin: {
-        name: "Dr. Sarah Johnson",
-        email: "sarah.johnson@university.edu",
-        phone: "+1 (555) 123-4567",
-        image:
-          "https://images.unsplash.com/photo-1494790108755-2616b612b193?w=100&h=100&fit=crop&crop=face",
-      },
-      socialLinks: {
-        website: "https://roboticsclub.university.edu",
-        instagram: "@robotics_club_uni",
-        twitter: "@RoboticsClubUni",
-        facebook: "RoboticsClubUniversity",
-      },
-      stats: {
-        totalEvents: 45,
-        upcomingEvents: 3,
-        achievements: 12,
-        activeProjects: 8,
-      },
-      pastEvents: [
-        {
-          id: 1,
-          name: "Robot Design Competition 2024",
-          date: "2024-11-15",
-          attendees: 89,
-          image:
-            "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=300&h=200&fit=crop",
-          type: "Competition",
-          description:
-            "Annual robotics competition featuring innovative designs and autonomous systems.",
-        },
-        {
-          id: 2,
-          name: "Arduino Workshop Series",
-          date: "2024-10-20",
-          attendees: 156,
-          image:
-            "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=300&h=200&fit=crop",
-          type: "Workshop",
-          description:
-            "Hands-on workshop teaching Arduino programming and hardware interfacing.",
-        },
-        {
-          id: 3,
-          name: "Tech Talk: AI in Robotics",
-          date: "2024-09-10",
-          attendees: 203,
-          image:
-            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop",
-          type: "Seminar",
-          description:
-            "Expert discussion on artificial intelligence applications in modern robotics.",
-        },
-        {
-          id: 4,
-          name: "Campus Robot Demo Day",
-          date: "2024-08-25",
-          attendees: 124,
-          image:
-            "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=300&h=200&fit=crop",
-          type: "Demo",
-          description:
-            "Showcase of student-built robots and their practical applications.",
-        },
-      ],
-      upcomingEvents: [
-        {
-          id: 5,
-          name: "Regional Robotics Championship",
-          date: "2025-07-15",
-          expectedAttendees: 200,
-          venue: "Main Auditorium",
-          description:
-            "Compete with the best robotics teams from across the region.",
-        },
-        {
-          id: 6,
-          name: "Beginner Python Workshop",
-          date: "2025-07-20",
-          expectedAttendees: 80,
-          venue: "Computer Lab A",
-          description:
-            "Learn Python programming fundamentals for robotics applications.",
-        },
-      ],
-      achievements: [
-        "Winner - National Robotics Competition 2024",
-        "Best Innovation Award - Tech Fest 2024",
-        "Excellence in STEM Education 2023",
-        "Community Impact Award 2023",
-      ],
-    },
+  // Fetch club details from API
+  const fetchClubDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`http://localhost:5000/api/clubs/${clubId}`);
+      
+      if (response.data.success) {
+        const clubData = response.data.club;
+        
+        // Transform API data to match component expectations
+        const transformedClub = {
+          id: clubData.id,
+          name: clubData.name,
+          members: parseInt(clubData.members_count) || 0,
+          category: clubData.category,
+          description: clubData.description,
+          image: clubData.image,
+          coverImage: clubData.cover_image || clubData.image, // Use cover_image or fallback to image
+          featured: clubData.featured,
+          rating: parseFloat(clubData.rating) || 0,
+          established: clubData.established || new Date(clubData.created_at).getFullYear().toString(),
+          admin: {
+            name: clubData.admin_name || "Club Admin",
+            email: clubData.admin_email || "admin@club.com",
+            phone: "+1 (555) 123-4567", // Default as API doesn't provide phone
+            image: clubData.admin_image || "https://images.unsplash.com/photo-1494790108755-2616b612b193?w=100&h=100&fit=crop&crop=face",
+          },
+          socialLinks: {
+            website: clubData.website || "#",
+            instagram: clubData.instagram || "@club_instagram",
+            twitter: clubData.twitter || "@club_twitter",
+            facebook: clubData.facebook || "ClubFacebook",
+          },
+          stats: {
+            totalEvents: parseInt(clubData.events_count) || 0,
+            upcomingEvents: clubData.upcomingEvents?.length || 0,
+            achievements: 0, // API doesn't provide this, set default
+            activeProjects: Math.floor(Math.random() * 10) + 1, // Random for demo
+          },
+          upcomingEvents: clubData.upcomingEvents || [],
+          pastEvents: [], // API doesn't provide past events, empty for now
+          achievements: [
+            // Default achievements since API doesn't provide them
+            "Active Community Member",
+            "Innovation in " + clubData.category,
+            "Student Engagement Excellence",
+          ],
+          recentMembers: clubData.recentMembers || [],
+          isMember: clubData.isMember || false,
+          memberRole: clubData.memberRole,
+        };
+        
+        setClub(transformedClub);
+      } else {
+        setError("Failed to fetch club details");
+      }
+    } catch (err) {
+      setError("Error fetching club details: " + err.message);
+      console.error("Error fetching club details:", err);
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const club = clubsData[1];
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (clubId) {
+      fetchClubDetails();
+    }
   }, [clubId]);
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading club details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-red-800 mb-2">
+              Error Loading Club
+            </h2>
+            <p className="text-red-600 mb-4">{error}</p>
+            <div className="space-x-3">
+              <button
+                onClick={fetchClubDetails}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => navigate("/clubs")}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Back to Clubs
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Club not found
   if (!club) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading club details...</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Club Not Found</h2>
+          <p className="text-gray-600 mb-4">The club you're looking for doesn't exist.</p>
+          <button
+            onClick={() => navigate("/clubs")}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Back to Clubs
+          </button>
         </div>
       </div>
     );
@@ -345,9 +356,9 @@ const ClubDetails = () => {
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Total Achievements</span>
+                      <span className="text-gray-600">Total Events</span>
                       <span className="font-semibold text-purple-600">
-                        {club.stats.achievements}
+                        {club.stats.totalEvents}
                       </span>
                     </div>
                   </div>
@@ -358,56 +369,80 @@ const ClubDetails = () => {
 
           {activeTab === "events" && (
             <div className="space-y-8">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Upcoming Events
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  {club?.upcomingEvents?.map((event) => (
-                    <div
-                      key={event.id}
-                      className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20 border-l-4 border-l-green-500"
-                    >
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">
-                        {event.name}
-                      </h3>
-                      <p className="text-gray-600 text-sm mb-4">
-                        {event.description}
-                      </p>
-                      <div className="space-y-2 text-sm text-gray-600">
-                        <div className="flex items-center space-x-2">
-                          <Calendar size={16} />
-                          <span>
-                            {new Date(event.date).toLocaleDateString()}
-                          </span>
+              {club.upcomingEvents.length > 0 ? (
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                    Upcoming Events
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    {club?.upcomingEvents?.map((event) => (
+                      <div
+                        key={event.id}
+                        className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20 border-l-4 border-l-green-500"
+                      >
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">
+                          {event.name}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-4">
+                          {event.description}
+                        </p>
+                        <div className="space-y-2 text-sm text-gray-600">
+                          <div className="flex items-center space-x-2">
+                            <Calendar size={16} />
+                            <span>
+                              {new Date(event.date).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <MapPin size={16} />
+                            <span>{event.venue}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Users size={16} />
+                            <span>{event.expectedAttendees} expected</span>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <MapPin size={16} />
-                          <span>{event.venue}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Users size={16} />
-                          <span>{event.expectedAttendees} expected</span>
-                        </div>
+                        <button className="w-full mt-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white font-medium rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300">
+                          Register Now
+                        </button>
                       </div>
-                      <button className="w-full mt-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white font-medium rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300">
-                        Register Now
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-white/70 backdrop-blur-lg rounded-xl p-8 shadow-lg border border-white/20 text-center">
+                  <Calendar size={64} className="mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                    No Upcoming Events
+                  </h3>
+                  <p className="text-gray-500">
+                    Stay tuned for exciting events coming soon!
+                  </p>
+                </div>
+              )}
 
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Past Events
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {club.pastEvents.map((event) => (
-                    <EventCard key={event.id} event={event} />
-                  ))}
+              {club.pastEvents.length > 0 ? (
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                    Past Events
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {club.pastEvents.map((event) => (
+                      <EventCard key={event.id} event={event} />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 shadow-lg border border-white/20 text-center">
+                  <Calendar size={48} className="mx-auto text-gray-400 mb-3" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    No Past Events
+                  </h3>
+                  <p className="text-gray-500 text-sm">
+                    This club hasn't hosted any events yet.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -438,12 +473,14 @@ const ClubDetails = () => {
                     <Phone className="text-green-600" size={20} />
                     <span className="text-gray-800">{club.admin.phone}</span>
                   </div>
-                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <Globe className="text-purple-600" size={20} />
-                    <span className="text-gray-800">
-                      {club.socialLinks.website}
-                    </span>
-                  </div>
+                  {club.socialLinks.website !== "#" && (
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Globe className="text-purple-600" size={20} />
+                      <span className="text-gray-800">
+                        {club.socialLinks.website}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -453,18 +490,21 @@ const ClubDetails = () => {
                   <a
                     href="#"
                     className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    title="Facebook"
                   >
                     <Facebook size={20} />
                   </a>
                   <a
                     href="#"
                     className="p-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+                    title="Instagram"
                   >
                     <Instagram size={20} />
                   </a>
                   <a
                     href="#"
                     className="p-3 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
+                    title="Twitter"
                   >
                     <Twitter size={20} />
                   </a>
@@ -477,8 +517,15 @@ const ClubDetails = () => {
                   Ready to be part of something amazing? Join {club.name} and
                   connect with {club.members}+ like-minded individuals.
                 </p>
-                <button className="w-full bg-white text-blue-600 py-3 px-6 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                  Join Club
+                <button 
+                  className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 ${
+                    club.isMember 
+                      ? "bg-green-500 text-white cursor-not-allowed" 
+                      : "bg-white text-blue-600 hover:shadow-lg transform hover:scale-105"
+                  }`}
+                  disabled={club.isMember}
+                >
+                  {club.isMember ? "Already a Member" : "Join Club"}
                 </button>
               </div>
             </div>
