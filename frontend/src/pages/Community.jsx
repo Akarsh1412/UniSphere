@@ -1,203 +1,143 @@
 import { useState, useEffect } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Image, Send, Users, TrendingUp } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  MoreHorizontal,
+  Image,
+  Send,
+  Users,
+  TrendingUp,
+} from "lucide-react";
+import axios from "axios";
 
 const Community = () => {
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      author: {
-        name: "Sarah Chen",
-        avatar:
-          "https://images.unsplash.com/photo-1494790108755-2616b612b9c?w=50&h=50&fit=crop&crop=face",
-        club: "Photography Club",
-        verified: true,
-      },
-      content:
-        "Just captured this amazing sunset from the campus rooftop! The golden hour lighting was absolutely perfect for our photography workshop today. Can't wait to share more shots with everyone! 📸✨",
-      image:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop",
-      timestamp: "2 hours ago",
-      likes: 124,
-      comments: [
-        {
-          id: 1,
-          author: {
-            name: "Michael Wong",
-            avatar:
-              "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "Wow Sarah! The composition is perfect. What settings did you use?",
-          timestamp: "1 hour ago",
-        },
-        {
-          id: 2,
-          author: {
-            name: "Emma Thompson",
-            avatar:
-              "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "This makes me want to join the photography club! When are your next workshops?",
-          timestamp: "45 minutes ago",
-        },
-      ],
-      shares: 8,
-      liked: false,
-      bookmarked: false,
-      showComments: false,
-      newComment: "",
-    },
-    {
-      id: 2,
-      author: {
-        name: "Alex Rodriguez",
-        avatar:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face",
-        club: "Robotics Club",
-        verified: true,
-      },
-      content:
-        "Our team just won the regional robotics competition! 🏆 All those late nights in the lab finally paid off. Special thanks to everyone who supported us. Next stop: nationals! #RoboticsLife #TeamWork",
-      image:
-        "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=400&fit=crop",
-      timestamp: "4 hours ago",
-      likes: 298,
-      comments: [
-        {
-          id: 1,
-          author: {
-            name: "Dr. Peterson",
-            avatar:
-              "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "Congratulations team! Your hard work and innovation paid off. Proud of you all!",
-          timestamp: "3 hours ago",
-        },
-        {
-          id: 2,
-          author: {
-            name: "TechEnthusiast",
-            avatar:
-              "https://images.unsplash.com/photo-1564564321837-a57b7070ac4f?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "What was your robot's main innovation? Would love to know more about the design!",
-          timestamp: "2 hours ago",
-        },
-      ],
-      shares: 22,
-      liked: true,
-      bookmarked: true,
-      showComments: false,
-      newComment: "",
-    },
-    {
-      id: 3,
-      author: {
-        name: "Maya Patel",
-        avatar:
-          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50&h=50&fit=crop&crop=face",
-        club: "Arts & Culture Society",
-        verified: false,
-      },
-      content:
-        "Rehearsals for our upcoming cultural night are going amazing! The energy and talent of our performers is incredible. This is going to be our best show yet! Who's excited to see what we've been working on? 🎭🎨",
-      timestamp: "6 hours ago",
-      likes: 87,
-      comments: [
-        {
-          id: 1,
-          author: {
-            name: "James Wilson",
-            avatar:
-              "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "The dance sequence you choreographed was mind-blowing! Can't wait to see it on stage.",
-          timestamp: "5 hours ago",
-        },
-      ],
-      shares: 5,
-      liked: false,
-      bookmarked: false,
-      showComments: false,
-      newComment: "",
-    },
-    {
-      id: 4,
-      author: {
-        name: "David Kim",
-        avatar:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face",
-        club: "Entrepreneurship Club",
-        verified: true,
-      },
-      content:
-        "Just launched our startup idea at the innovation summit! The feedback was incredible and we've already got three potential investors interested. Dreams do come true when you work hard and believe in yourself! 💼🚀",
-      image:
-        "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600&h=400&fit=crop",
-      timestamp: "8 hours ago",
-      likes: 156,
-      comments: [
-        {
-          id: 1,
-          author: {
-            name: "Sophia Lee",
-            avatar:
-              "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "So proud of you David! This is just the beginning. Your pitch was flawless!",
-          timestamp: "7 hours ago",
-        },
-        {
-          id: 2,
-          author: {
-            name: "InvestorPro",
-            avatar:
-              "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "Impressive presentation. Would love to schedule a meeting to discuss further.",
-          timestamp: "6 hours ago",
-        },
-        {
-          id: 3,
-          author: {
-            name: "TechStartupFan",
-            avatar:
-              "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "What problem does your startup solve? Would love to hear more details!",
-          timestamp: "5 hours ago",
-        },
-      ],
-      shares: 15,
-      liked: false,
-      bookmarked: true,
-      showComments: false,
-      newComment: "",
-    },
-  ]);
-
+  const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleLike = (postId) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              liked: !post.liked,
-              likes: post.liked ? post.likes - 1 : post.likes + 1,
-            }
-          : post
-      )
+  // Fetch posts from backend
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Authentication required");
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await axios.get(
+          "http://localhost:5000/api/community/posts",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face";
+
+        // Transform backend data to match frontend structure
+        const transformedPosts = response.data.posts.map((post) => ({
+          id: post.id,
+          author: {
+            name: post.author_name,
+            avatar:
+              post.author_avatar ||
+              "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face",
+            club: "",
+            verified: false,
+          },
+          content: post.content,
+          image: post.image,
+          timestamp: formatTime(post.created_at),
+          likes: parseInt(post.likes_count),
+          comments: post.comments
+            ? post.comments.map((comment) => ({
+                id: comment.id,
+                author: {
+                  name: comment.author_name,
+                  avatar: comment.author_avatar || DEFAULT_AVATAR,
+                },
+                content: comment.content,
+                timestamp: formatTime(comment.created_at),
+              }))
+            : [],
+          shares: post.shares_count || 0,
+          liked: post.is_liked || false,
+          bookmarked: false,
+          showComments: false,
+          newComment: "",
+        }));
+
+        setPosts(transformedPosts);
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Error fetching posts:", err);
+        setError("Failed to load posts");
+        setIsLoading(false);
+      }
+    };
+
+    fetchPosts();
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Format timestamp to relative time
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) return "just now";
+    if (diffInSeconds < 3600)
+      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+
+    const days = Math.floor(diffInSeconds / 86400);
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  };
+
+  const handleLike = async (postId) => {
+    // Optimistically update UI first
+    const updatedPosts = posts.map((post) =>
+      post.id === postId
+        ? {
+            ...post,
+            liked: !post.liked,
+            likes: post.liked ? post.likes - 1 : post.likes + 1,
+          }
+        : post
     );
+    setPosts(updatedPosts);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      // Make API request to backend
+      await axios.post(
+        `http://localhost:5000/api/community/posts/${postId}/like`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Like toggle failed:", error);
+
+      // Revert UI changes on error
+      setPosts(posts);
+      alert("Failed to update like status. Please try again.");
+    }
   };
 
   const toggleComments = (postId) => {
@@ -218,31 +158,70 @@ const Community = () => {
     );
   };
 
-  const handleAddComment = (postId) => {
-    setPosts(
-      posts.map((post) => {
-        if (post.id === postId && post.newComment.trim() !== "") {
-          const newComment = {
-            id: Date.now(), // Simple unique ID
-            author: {
-              name: "You",
-              avatar:
-                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&crop=face",
-            },
-            content: post.newComment,
-            timestamp: "just now",
-          };
+  const handleAddComment = async (postId) => {
+    const post = posts.find((p) => p.id === postId);
+    if (!post || !post.newComment.trim()) return;
 
-          return {
-            ...post,
-            comments: [...post.comments, newComment],
-            newComment: "",
-            showComments: true,
-          };
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication required");
+
+      // Save comment text and clear input immediately
+      const commentText = post.newComment;
+      setPosts(
+        posts.map((p) => (p.id === postId ? { ...p, newComment: "" } : p))
+      );
+
+      // Send comment to backend
+      const response = await axios.post(
+        `http://localhost:5000/api/community/posts/${postId}/comments`,
+        { content: commentText },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-        return post;
-      })
-    );
+      );
+
+      // Transform backend response to frontend format
+      const serverComment = response.data.comment;
+      const newComment = {
+        id: serverComment.id,
+        author: {
+          name: serverComment.author_name,
+          avatar:
+            serverComment.author_avatar ||
+            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&crop=face",
+        },
+        content: serverComment.content,
+        timestamp: formatTime(serverComment.created_at),
+      };
+
+      // Update state with new comment
+      setPosts(
+        posts.map((p) => {
+          if (p.id === postId) {
+            return {
+              ...p,
+              comments: [...p.comments, newComment],
+              showComments: true,
+            };
+          }
+          return p;
+        })
+      );
+    } catch (error) {
+      console.error("Error adding comment:", error);
+
+      // Restore comment text on error
+      setPosts(
+        posts.map((p) =>
+          p.id === postId ? { ...p, newComment: commentText } : p
+        )
+      );
+
+      alert("Failed to add comment. Please try again.");
+    }
   };
 
   const handleImageSelect = (e) => {
@@ -254,33 +233,65 @@ const Community = () => {
     }
   };
 
-  const handleSubmitPost = () => {
+  const handleSubmitPost = async () => {
     if (!newPost.trim() && !selectedImage) return;
 
-    const post = {
-      id: posts.length + 1,
-      author: {
-        name: "You",
-        avatar:
-          "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face",
-        club: "Student",
-        verified: false,
-      },
-      content: newPost,
-      image: selectedImage,
-      timestamp: "now",
-      likes: 0,
-      comments: [],
-      shares: 0,
-      liked: false,
-      bookmarked: false,
-      showComments: false,
-      newComment: "",
-    };
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No authentication token found");
+        return;
+      }
 
-    setPosts([post, ...posts]);
-    setNewPost("");
-    setSelectedImage(null);
+      const formData = new FormData();
+      formData.append("content", newPost);
+
+      if (selectedImage) {
+        const blob = await fetch(selectedImage).then((res) => res.blob());
+        const file = new File([blob], "post-image.png", { type: blob.type });
+        formData.append("image", file);
+      }
+
+      const response = await axios.post(
+        "http://localhost:5000/api/community/posts",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      const serverPost = response.data.post;
+      const newPostData = {
+        id: serverPost.id,
+        author: {
+          name: serverPost.author_name,
+          avatar:
+            serverPost.author_avatar ||
+            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face",
+          club: "",
+          verified: false,
+        },
+        content: serverPost.content,
+        image: serverPost.image,
+        timestamp: "just now",
+        likes: parseInt(serverPost.likes_count),
+        comments: [],
+        shares: 0,
+        liked: false,
+        bookmarked: false,
+        showComments: false,
+        newComment: "",
+      };
+
+      setPosts([newPostData, ...posts]);
+      setNewPost("");
+      setSelectedImage(null);
+    } catch (error) {
+      console.error("Error creating post:", error);
+    }
   };
 
   const trendingTopics = [
@@ -312,9 +323,51 @@ const Community = () => {
     },
   ];
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading community posts...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50">
+        <div className="text-center p-6 bg-white rounded-xl shadow-md">
+          <div className="text-red-500 mb-4">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-12 w-12 mx-auto"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Error loading posts
+          </h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
