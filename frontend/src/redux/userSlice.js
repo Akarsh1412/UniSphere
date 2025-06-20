@@ -1,7 +1,6 @@
-// src/redux/userSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 
-const initialState = null; // Set initial state to null instead of empty object
+const initialState = null;
 
 const userSlice = createSlice({
   name: 'user',

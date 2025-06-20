@@ -1,15 +1,14 @@
-// src/pages/Profile.jsx
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { useLogout } from '../hooks/useLogout'; // Import your custom hook
+import { useLogout } from '../hooks/useLogout';
+import { User, Mail, Calendar, Shield, CheckCircle, Clock, LogOut, Edit } from 'lucide-react';
 
 const Profile = () => {
   const navigate = useNavigate();
   const user = useSelector(state => state.user);
-  const logout = useLogout(); // Use your custom logout hook
-  
-  // Redirect to login if not authenticated
+  const logout = useLogout();
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -18,137 +17,185 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Please log in</h2>
+          <Link to="/login" className="text-blue-600 hover:text-blue-800">
+            Go to Login
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Profile Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
-            <div className="flex flex-col md:flex-row items-center">
-              <div className="mb-6 md:mb-0 md:mr-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8">
+            <div className="flex items-center space-x-4">
+              <div className="relative">
                 {user.profilePicture ? (
-                  <img 
-                    src={user.profilePicture} 
-                    alt="Profile" 
-                    className="w-32 h-32 rounded-full border-4 border-white/30 object-cover shadow-lg"
+                  <img
+                    src={user.profilePicture}
+                    alt={user.name}
+                    className="w-20 h-20 rounded-full object-cover border-4 border-white"
                   />
                 ) : (
-                  <div className="bg-gray-200 border-2 border-dashed rounded-full w-32 h-32 flex items-center justify-center">
-                    <span className="text-4xl font-bold text-gray-400">
-                      {user.name?.charAt(0).toUpperCase() || 'U'}
-                    </span>
+                  <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center border-4 border-white">
+                    <User className="w-10 h-10 text-gray-400" />
                   </div>
                 )}
+                <button className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-lg hover:shadow-xl transition-shadow">
+                  <Edit className="w-4 h-4 text-gray-600" />
+                </button>
               </div>
-              
-              <div className="text-center md:text-left">
-                <h1 className="text-3xl md:text-4xl font-bold mb-2">{user.name}</h1>
-                <p className="text-blue-100 mb-4">{user.email}</p>
-                
-                <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                  <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                    <p className="text-sm font-medium">Registration No.</p>
-                    <p className="font-bold">{user.registrationNumber || 'Not provided'}</p>
+              <div className="text-white">
+                <h1 className="text-2xl font-bold">{user.name}</h1>
+                <p className="text-blue-100">{user.email}</p>
+                <div className="flex items-center mt-2 space-x-4">
+                  <div className="flex items-center text-sm">
+                    <Calendar className="w-4 h-4 mr-1" />
+                    <span>Registration No.</span>
                   </div>
-                  
-                  <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                    <p className="text-sm font-medium">Account Status</p>
-                    <p className="font-bold">
-                      {user.verified ? (
-                        <span className="text-green-300">Verified</span>
-                      ) : (
-                        <span className="text-yellow-300">Pending Verification</span>
-                      )}
-                    </p>
-                  </div>
-                  
-                  <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                    <p className="text-sm font-medium">Role</p>
-                    <p className="font-bold capitalize">{user.role || 'student'}</p>
-                  </div>
+                  <span className="text-sm font-medium">
+                    {user.registrationNumber || 'Not provided'}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
-          
-          {/* Profile Details */}
-          <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-gray-50 rounded-xl p-6">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">Account Information</h2>
-                
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Full Name</p>
-                    <p className="font-medium">{user.name}</p>
+
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-green-50 rounded-lg p-4">
+                <div className="flex items-center">
+                  <div className="bg-green-100 rounded-full p-2">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
                   </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-500">Email Address</p>
-                    <p className="font-medium">{user.email}</p>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-green-900">Account Status</p>
+                    <p className="text-xs text-green-700">
+                      {user.verified ? (
+                        <span className="flex items-center">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Verified
+                        </span>
+                      ) : (
+                        <span className="flex items-center">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Pending Verification
+                        </span>
+                      )}
+                    </p>
                   </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-500">Registration Number</p>
-                    <p className="font-medium">{user.registrationNumber || 'Not provided'}</p>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center">
+                  <div className="bg-blue-100 rounded-full p-2">
+                    <Shield className="w-6 h-6 text-blue-600" />
                   </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-500">Member Since</p>
-                    <p className="font-medium">
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-blue-900">Role</p>
+                    <p className="text-xs text-blue-700 capitalize">
+                      {user.role || 'student'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="flex items-center">
+                  <div className="bg-purple-100 rounded-full p-2">
+                    <Calendar className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-purple-900">Member Since</p>
+                    <p className="text-xs text-purple-700">
                       {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                     </p>
                   </div>
                 </div>
               </div>
-              
-              <div className="bg-gray-50 rounded-xl p-6">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">Account Actions</h2>
-                
-                <div className="space-y-4">
-                  <Link 
-                    to="/update-profile" 
-                    className="block w-full bg-white border border-gray-300 rounded-lg py-3 px-4 text-center font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                  >
-                    Edit Profile
-                  </Link>
-                  
-                  <Link 
-                    to="/change-password" 
-                    className="block w-full bg-white border border-gray-300 rounded-lg py-3 px-4 text-center font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                  >
-                    Change Password
-                  </Link>
-                  
-                  <button
-                    onClick={logout} // Use the logout function from your hook
-                    className="w-full bg-gradient-to-r from-red-600 to-orange-500 text-white font-medium py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
-                    </svg>
-                    Log Out
-                  </button>
+            </div>
+
+            <div className="border-t border-gray-200 pt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div className="flex items-center">
+                    <User className="w-5 h-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Full Name</p>
+                      <p className="text-sm text-gray-600">{user.name}</p>
+                    </div>
+                  </div>
+                  <button className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+                </div>
+
+                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div className="flex items-center">
+                    <Mail className="w-5 h-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Email Address</p>
+                      <p className="text-sm text-gray-600">{user.email}</p>
+                    </div>
+                  </div>
+                  <button className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+                </div>
+
+                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div className="flex items-center">
+                    <Shield className="w-5 h-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Registration Number</p>
+                      <p className="text-sm text-gray-600">
+                        {user.registrationNumber || 'Not provided'}
+                      </p>
+                    </div>
+                  </div>
+                  <button className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+                </div>
+
+                <div className="flex items-center justify-between py-3">
+                  <div className="flex items-center">
+                    <Calendar className="w-5 h-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Member Since</p>
+                      <p className="text-sm text-gray-600">
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4">
-              <div className="flex">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-blue-700">
-                  {user.verified
+
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                <h4 className="text-sm font-medium text-blue-900 mb-2">Account Status</h4>
+                <p className="text-sm text-blue-700">
+                  {user.verified 
                     ? "Your account is fully verified. You have access to all platform features."
-                    : "Your account is pending verification. Some features may be limited until your account is verified."}
+                    : "Your account is pending verification. Some features may be limited until your account is verified."
+                  }
                 </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </button>
+                <button 
+                  onClick={logout}
+                  className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Log Out
+                </button>
               </div>
             </div>
           </div>

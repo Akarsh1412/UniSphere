@@ -6,15 +6,15 @@ import { validateEmail, validatePassword } from '../utils/helpers.js';
 
 const { jwtSecret, jwtExpire, bcryptSaltRounds } = authConfig;
 
-const generateToken = (userId, type = 'access') => {
-  return jwt.sign({ userId, type }, jwtSecret, { expiresIn: jwtExpire });
+const generateToken = (userId, role) => {
+  const payload = { userId, role };
+  return jwt.sign(payload, jwtSecret, { expiresIn: jwtExpire });
 };
 
 export const register = async (req, res) => {
   try {
     const { name, email, password, registrationNumber, profilePicture } = req.body;
     
-    // Validation
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
     }
@@ -29,7 +29,6 @@ export const register = async (req, res) => {
       });
     }
     
-    // Check if user exists
     const existingUser = await pool.query(
       'SELECT id FROM users WHERE email = $1 OR registration_number = $2',
       [email, registrationNumber]
@@ -39,10 +38,8 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: 'User with this email or registration number already exists' });
     }
     
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, bcryptSaltRounds);
     
-    // Create user
     const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, registration_number, profile_picture) 
        VALUES ($1, $2, $3, $4, $5) 
@@ -51,7 +48,7 @@ export const register = async (req, res) => {
     );
     
     const user = result.rows[0];
-    const token = generateToken(user.id);
+    const token = generateToken(user.id, user.role);
     
     res.status(201).json({
       success: true,
@@ -81,7 +78,6 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: 'Email/Registration number and password are required' });
     }
     
-    // Find user by email or registration number
     const result = await pool.query(
       `SELECT id, name, email, password_hash, profile_picture, registration_number, role 
        FROM users WHERE email = $1 OR registration_number = $1`,
@@ -94,13 +90,12 @@ export const login = async (req, res) => {
     
     const user = result.rows[0];
     
-    // Check password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     
-    const token = generateToken(user.id);
+    const token = generateToken(user.id, user.role);
     
     res.json({
       success: true,
@@ -128,22 +123,16 @@ export const adminLogin = async (req, res) => {
       return res.status(400).json({ message: 'Admin ID and password are required' });
     }
     
-    const result = process.env.ADMIN_ID === admin_id && process.env.ADMIN_PASSWORD === password;
+    const isAdmin = process.env.ADMIN_ID === admin_id && process.env.ADMIN_PASSWORD === password;
     
-    if (result) {
-      // Successful admin login
-      const payload = {
-          userId: admin_id, // Use the admin_id as the userId
-          role: 'admin'    // Explicitly set the role
-      };
-      const token = jwt.sign(payload, jwtSecret, { expiresIn: jwtExpire });
+    if (isAdmin) {
+      const token = generateToken(admin_id, 'admin');
       res.json({
         success: true,
         message: 'Admin login successful',
         token
       });
     } else {
-      // Failed admin login
       res.status(401).json({ message: 'Invalid Admin ID or Password' });
     }
   } catch (error) {
@@ -154,11 +143,8 @@ export const adminLogin = async (req, res) => {
 
 export const verifyToken = async (req, res) => {
   try {
-    // The authenticateToken middleware has already verified the token
-    // and set req.user with basic user info
     const userId = req.user.userId;
 
-    // Fetch complete user data from database
     const result = await pool.query(
       `SELECT id, name, email, profile_picture, registration_number, role, created_at
        FROM users WHERE id = $1`,
@@ -174,7 +160,6 @@ export const verifyToken = async (req, res) => {
 
     const user = result.rows[0];
     
-    // Return user data in the expected format
     res.status(200).json({
       success: true,
       user: {
@@ -210,9 +195,19 @@ export const getProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
+    const user = result.rows[0];
+
     res.json({
       success: true,
-      user: result.rows[0]
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        profilePicture: user.profile_picture,
+        registrationNumber: user.registration_number,
+        role: user.role,
+        createdAt: user.created_at
+      }
     });
   } catch (error) {
     console.error('Get profile error:', error);

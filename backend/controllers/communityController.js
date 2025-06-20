@@ -1,255 +1,162 @@
-import pool from '../config/database.js';
+import { Post, Comment, Like, pool } from '../models/index.js';
 
-export const getAllPosts = async (req, res) => {
+export const getAllPosts = async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.query;
     const userId = req.user?.userId;
-    
     const offset = (page - 1) * limit;
-    
-    const result = await pool.query(`
-      SELECT p.*, u.name as author_name, u.profile_picture as author_avatar,
-             COUNT(DISTINCT l.id) as likes_count,
-             COUNT(DISTINCT c.id) as comments_count,
-             ${userId ? `CASE WHEN ul.id IS NOT NULL THEN true ELSE false END as is_liked` : 'false as is_liked'}
+
+    const query = `
+      SELECT p.*, u.id as user_id, u.name as author_name, u.profile_picture as author_avatar,
+      p.likes_count, p.shares_count,
+      (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
+      ${userId ? `(SELECT EXISTS (SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $3)) as is_liked` : 'false as is_liked'}
       FROM posts p
-      LEFT JOIN users u ON p.user_id = u.id
-      LEFT JOIN likes l ON p.id = l.post_id
-      LEFT JOIN comments c ON p.id = c.post_id
-      ${userId ? 'LEFT JOIN likes ul ON p.id = ul.post_id AND ul.user_id = $3' : ''}
-      GROUP BY p.id, u.name, u.profile_picture${userId ? ', ul.id' : ''}
+      JOIN users u ON p.user_id = u.id
       ORDER BY p.created_at DESC
-      LIMIT $1 OFFSET $2
-    `, userId ? [limit, offset, userId] : [limit, offset]);
+      LIMIT $1 OFFSET $2;
+    `;
     
-    // Get comments for each post
+    const result = await pool.query(query, userId ? [limit, offset, userId] : [limit, offset]);
+    
     for (let post of result.rows) {
       const commentsResult = await pool.query(`
-        SELECT c.*, u.name as author_name, u.profile_picture as author_avatar
+        SELECT c.*, u.id as user_id, u.name as author_name, u.profile_picture as author_avatar
         FROM comments c
-        LEFT JOIN users u ON c.user_id = u.id
+        JOIN users u ON c.user_id = u.id
         WHERE c.post_id = $1
         ORDER BY c.created_at ASC
-        LIMIT 5
+        LIMIT 5;
       `, [post.id]);
-      
       post.comments = commentsResult.rows;
     }
     
-    // Get total count
-    const countResult = await pool.query('SELECT COUNT(*) FROM posts');
-    const totalPosts = parseInt(countResult.rows[0].count);
+    const totalPosts = await Post.count();
     
     res.json({
       success: true,
       posts: result.rows,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(totalPosts / limit),
-        totalPosts,
-        hasNext: page * limit < totalPosts,
-        hasPrev: page > 1
-      }
+      pagination: { currentPage: parseInt(page, 10), totalPages: Math.ceil(totalPosts / limit), totalPosts }
     });
   } catch (error) {
-    console.error('Get posts error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    next(error);
   }
 };
 
-export const createPost = async (req, res) => {
+export const createPost = async (req, res, next) => {
   try {
     const { content, image } = req.body;
     const userId = req.user.userId;
+
+    const newPostData = await Post.create({ user_id: userId, content, image });
     
-    if (!content || content.trim().length === 0) {
-      return res.status(400).json({ message: 'Post content is required' });
-    }
+    const hydratedPostQuery = await pool.query(`
+        SELECT p.*, u.id as user_id, u.name as author_name, u.profile_picture as author_avatar
+        FROM posts p JOIN users u ON p.user_id = u.id
+        WHERE p.id = $1
+    `, [newPostData.id]);
     
-    const result = await pool.query(`
-      INSERT INTO posts (user_id, content, image)
-      VALUES ($1, $2, $3)
-      RETURNING *
-    `, [userId, content.trim(), image]);
-    
-    // Get the created post with user details
-    const postResult = await pool.query(`
-      SELECT p.*, u.name as author_name, u.profile_picture as author_avatar
-      FROM posts p
-      LEFT JOIN users u ON p.user_id = u.id
-      WHERE p.id = $1
-    `, [result.rows[0].id]);
-    
-    res.status(201).json({
-      success: true,
-      message: 'Post created successfully',
-      post: {
-        ...postResult.rows[0],
-        likes_count: 0,
-        comments_count: 0,
-        is_liked: false,
-        comments: []
-      }
-    });
+    const hydratedPost = hydratedPostQuery.rows[0];
+    hydratedPost.comments = [];
+
+    req.io.emit('newPost', hydratedPost);
+
+    res.status(201).json({ success: true, message: 'Post created successfully', post: hydratedPost });
   } catch (error) {
-    console.error('Create post error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    next(error);
   }
 };
 
-export const likePost = async (req, res) => {
+export const likePost = async (req, res, next) => {
   try {
     const { postId } = req.params;
     const userId = req.user.userId;
-    
-    // Check if post exists
-    const postResult = await pool.query('SELECT id FROM posts WHERE id = $1', [postId]);
-    if (postResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Post not found' });
-    }
-    
-    // Check if already liked
-    const existingLike = await pool.query(
-      'SELECT id FROM likes WHERE user_id = $1 AND post_id = $2',
-      [userId, postId]
-    );
-    
-    if (existingLike.rows.length > 0) {
-      // Unlike
-      await pool.query(
-        'DELETE FROM likes WHERE user_id = $1 AND post_id = $2',
-        [userId, postId]
-      );
-      
-      await pool.query(
-        'UPDATE posts SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = $1',
-        [postId]
-      );
-      
-      res.json({ 
-        success: true, 
-        message: 'Post unliked',
-        liked: false
-      });
+    const existingLike = await Like.findAll({ user_id: userId, post_id: postId });
+    let newLikesCount;
+
+    if (existingLike.length > 0) {
+      await pool.query('DELETE FROM likes WHERE id = $1', [existingLike[0].id]);
+      const result = await pool.query('UPDATE posts SET likes_count = GREATEST(0, likes_count - 1) WHERE id = $1 RETURNING likes_count', [postId]);
+      newLikesCount = result.rows[0].likes_count;
     } else {
-      // Like
-      await pool.query(
-        'INSERT INTO likes (user_id, post_id) VALUES ($1, $2)',
-        [userId, postId]
-      );
-      
-      await pool.query(
-        'UPDATE posts SET likes_count = likes_count + 1 WHERE id = $1',
-        [postId]
-      );
-      
-      res.json({ 
-        success: true, 
-        message: 'Post liked',
-        liked: true
-      });
+      await Like.create({ user_id: userId, post_id: postId });
+      const result = await pool.query('UPDATE posts SET likes_count = likes_count + 1 WHERE id = $1 RETURNING likes_count', [postId]);
+      newLikesCount = result.rows[0].likes_count;
     }
+
+    req.io.emit('updateLike', { postId, likesCount: newLikesCount, liked: existingLike.length === 0, userId });
+    
+    res.json({ success: true, message: 'Like status toggled' });
   } catch (error) {
-    console.error('Like post error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    next(error);
   }
 };
 
-export const addComment = async (req, res) => {
+export const addComment = async (req, res, next) => {
   try {
     const { postId } = req.params;
     const { content } = req.body;
     const userId = req.user.userId;
+
+    const newCommentData = await Comment.create({ post_id: postId, user_id: userId, content });
     
-    if (!content || content.trim().length === 0) {
-      return res.status(400).json({ message: 'Comment content is required' });
-    }
-    
-    // Check if post exists
-    const postResult = await pool.query('SELECT id FROM posts WHERE id = $1', [postId]);
-    if (postResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Post not found' });
-    }
-    
-    const result = await pool.query(`
-      INSERT INTO comments (post_id, user_id, content)
-      VALUES ($1, $2, $3)
-      RETURNING *
-    `, [postId, userId, content.trim()]);
-    
-    // Get comment with user details
-    const commentResult = await pool.query(`
-      SELECT c.*, u.name as author_name, u.profile_picture as author_avatar
-      FROM comments c
-      LEFT JOIN users u ON c.user_id = u.id
-      WHERE c.id = $1
-    `, [result.rows[0].id]);
-    
-    res.status(201).json({
-      success: true,
-      message: 'Comment added successfully',
-      comment: commentResult.rows[0]
-    });
+    const hydratedCommentQuery = await pool.query(`
+        SELECT c.*, u.id as user_id, u.name as author_name, u.profile_picture as author_avatar
+        FROM comments c JOIN users u ON c.user_id = u.id
+        WHERE c.id = $1
+    `, [newCommentData.id]);
+
+    const hydratedComment = hydratedCommentQuery.rows[0];
+
+    req.io.emit('newComment', { postId, comment: hydratedComment });
+
+    res.status(201).json({ success: true, message: 'Comment added', comment: hydratedComment });
   } catch (error) {
-    console.error('Add comment error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    next(error);
   }
 };
 
-export const deletePost = async (req, res) => {
+export const deletePost = async (req, res, next) => {
   try {
     const { postId } = req.params;
     const userId = req.user.userId;
-    
-    // Check if post exists and user owns it
-    const postResult = await pool.query(
-      'SELECT user_id FROM posts WHERE id = $1',
-      [postId]
-    );
-    
-    if (postResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Post not found' });
-    }
-    
-    if (postResult.rows[0].user_id !== userId) {
-      return res.status(403).json({ message: 'Not authorized to delete this post' });
-    }
-    
-    // Delete post (comments and likes will be deleted due to CASCADE)
-    await pool.query('DELETE FROM posts WHERE id = $1', [postId]);
-    
-    res.json({
-      success: true,
-      message: 'Post deleted successfully'
-    });
+    const post = await Post.findById(postId);
+
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.user_id !== userId) return res.status(403).json({ message: 'Not authorized' });
+
+    await Post.delete(postId);
+    req.io.emit('deletePost', { postId });
+    res.json({ success: true, message: 'Post deleted' });
   } catch (error) {
-    console.error('Delete post error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    next(error);
   }
 };
 
-export const sharePost = async (req, res) => {
+export const deleteComment = async (req, res, next) => {
   try {
-    const { postId } = req.params;
-    
-    // Check if post exists
-    const postResult = await pool.query('SELECT id FROM posts WHERE id = $1', [postId]);
-    if (postResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Post not found' });
-    }
-    
-    // Increment share count
-    await pool.query(
-      'UPDATE posts SET shares_count = shares_count + 1 WHERE id = $1',
-      [postId]
-    );
-    
-    res.json({
-      success: true,
-      message: 'Post shared successfully'
-    });
+    const { commentId } = req.params;
+    const userId = req.user.userId;
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+    if (comment.user_id !== userId) return res.status(403).json({ message: 'Not authorized' });
+
+    await Comment.delete(commentId);
+    req.io.emit('deleteComment', { postId: comment.post_id, commentId });
+    res.json({ success: true, message: 'Comment deleted' });
   } catch (error) {
-    console.error('Share post error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    next(error);
   }
+};
+
+export const sharePost = async (req, res, next) => {
+    try {
+        const { postId } = req.params;
+        const result = await pool.query('UPDATE posts SET shares_count = shares_count + 1 WHERE id = $1 RETURNING shares_count', [postId]);
+        req.io.emit('sharePost', { postId, sharesCount: result.rows[0].shares_count });
+        res.json({ success: true, message: 'Share count updated' });
+    } catch (error) {
+        next(error);
+    }
 };

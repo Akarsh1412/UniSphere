@@ -96,7 +96,6 @@ class BaseModel {
   }
 }
 
-// Initialize models
 const User = new BaseModel('users');
 const Club = new BaseModel('clubs');
 const Event = new BaseModel('events');
@@ -105,6 +104,7 @@ const Comment = new BaseModel('comments');
 const Like = new BaseModel('likes');
 const ClubMembership = new BaseModel('club_memberships');
 const EventRegistration = new BaseModel('event_registrations');
+const DirectMessage = new BaseModel('direct_messages');
 
 export {
   BaseModel,
@@ -116,5 +116,6 @@ export {
   Like,
   ClubMembership,
   EventRegistration,
+  DirectMessage,
   pool
 };

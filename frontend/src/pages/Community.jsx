@@ -1,477 +1,493 @@
-import { useState, useEffect } from "react";
-import {
-  Heart,
-  MessageCircle,
-  Share2,
-  MoreHorizontal,
-  Image,
-  Send,
-  Users,
-  TrendingUp,
-} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Image as ImageIcon, Send, Trash2, X, Link as LinkIcon, MessageSquare, Mail } from "lucide-react";
+import { FacebookShareButton, TwitterShareButton, LinkedinShareButton, FacebookIcon, TwitterIcon, LinkedinIcon } from "react-share";
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
+import { getSocket } from "../socket";
+import OnlineUsers from "../components/OnlineUsers";
 
 const Community = () => {
   const [posts, setPosts] = useState([]);
-  const [newPost, setNewPost] = useState("");
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [newPostContent, setNewPostContent] = useState("");
+  const [newPostImage, setNewPostImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lightboxState, setLightboxState] = useState({ open: false, slides: [] });
+  const [shareModalState, setShareModalState] = useState({ isOpen: false, post: null });
+  const [optionsMenu, setOptionsMenu] = useState(null);
+  const currentUser = useSelector((state) => state.user);
+  const navigate = useNavigate();
+  const optionsMenuRef = useRef(null);
+  const DEFAULT_AVATAR = "https://placehold.co/150x150/E2E8F0/4A5568?text=U";
 
-  // Fetch posts from backend
   useEffect(() => {
     const fetchPosts = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("Authentication required");
-          setIsLoading(false);
-          return;
-        }
-
-        const response = await axios.get(
-          "http://localhost:5000/api/community/posts",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face";
-
-        // Transform backend data to match frontend structure
-        const transformedPosts = response.data.posts.map((post) => ({
-          id: post.id,
-          author: {
-            name: post.author_name,
-            avatar:
-              post.author_avatar ||
-              "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face",
-            club: "",
-            verified: false,
-          },
-          content: post.content,
-          image: post.image,
-          timestamp: formatTime(post.created_at),
-          likes: parseInt(post.likes_count),
-          comments: post.comments
-            ? post.comments.map((comment) => ({
-                id: comment.id,
-                author: {
-                  name: comment.author_name,
-                  avatar: comment.author_avatar || DEFAULT_AVATAR,
-                },
-                content: comment.content,
-                timestamp: formatTime(comment.created_at),
-              }))
-            : [],
-          shares: post.shares_count || 0,
-          liked: post.is_liked || false,
-          bookmarked: false,
-          showComments: false,
-          newComment: "",
-        }));
-
-        setPosts(transformedPosts);
-        setIsLoading(false);
+        const token = localStorage.getItem('token');
+        const response = await axios.get("http://localhost:5000/api/community/posts", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        setPosts(response.data.posts.map(p => ({ ...p, showComments: false, newComment: '' })));
       } catch (err) {
+        setError("Failed to load community feed. Please try again later.");
         console.error("Error fetching posts:", err);
-        setError("Failed to load posts");
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchPosts();
-    window.scrollTo(0, 0);
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleNewPost = (newPost) => setPosts(prev => [newPost, ...prev]);
+    const handleDeletePost = ({ postId }) => setPosts(prev => prev.filter(p => p.id !== postId));
+    const handleUpdateLike = ({ postId, likesCount, liked }) => 
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: likesCount, is_liked: liked } : p));
+    const handleNewComment = ({ postId, comment }) => 
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...(p.comments || []), comment], comments_count: (p.comments_count || 0) + 1 } : p));
+    const handleDeleteComment = ({ postId, commentId }) => 
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: (p.comments || []).filter(c => c.id !== commentId), comments_count: Math.max(0, (p.comments_count || 0) - 1) } : p));
+
+    socket.on('newPost', handleNewPost);
+    socket.on('deletePost', handleDeletePost);
+    socket.on('updateLike', handleUpdateLike);
+    socket.on('newComment', handleNewComment);
+    socket.on('deleteComment', handleDeleteComment);
+
+    return () => {
+      socket.off('newPost', handleNewPost);
+      socket.off('deletePost', handleDeletePost);
+      socket.off('updateLike', handleUpdateLike);
+      socket.off('newComment', handleNewComment);
+      socket.off('deleteComment', handleDeleteComment);
+    };
   }, []);
 
-  // Format timestamp to relative time
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target)) {
+        setOptionsMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const formatTime = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
-
     if (diffInSeconds < 60) return "just now";
-    if (diffInSeconds < 3600)
-      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-
-    const days = Math.floor(diffInSeconds / 86400);
-    return `${days} day${days > 1 ? "s" : ""} ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
   };
 
-  const handleLike = async (postId) => {
-    // Optimistically update UI first
-    const updatedPosts = posts.map((post) =>
-      post.id === postId
-        ? {
-            ...post,
-            liked: !post.liked,
-            likes: post.liked ? post.likes - 1 : post.likes + 1,
-          }
-        : post
-    );
-    setPosts(updatedPosts);
+  // Function to handle direct message navigation
+  const handleDirectMessage = (userId) => {
+    if (!currentUser) {
+      alert('Please log in to send messages');
+      navigate('/login');
+      return;
+    }
+    navigate(`/chat/${userId}`);
+  };
 
+  const handleApiCall = async (method, url, data = null, headers = {}) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error("Authentication required");
+        alert('Please log in to perform this action');
+        navigate('/login');
+        return;
       }
 
-      // Make API request to backend
-      await axios.post(
-        `http://localhost:5000/api/community/posts/${postId}/like`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-    } catch (error) {
-      console.error("Like toggle failed:", error);
-
-      // Revert UI changes on error
-      setPosts(posts);
-      alert("Failed to update like status. Please try again.");
+      await axios({
+        method,
+        url: `http://localhost:5000/api/community${url}`,
+        data,
+        headers: { Authorization: `Bearer ${token}`, ...headers }
+      });
+    } catch (err) {
+      console.error('API call error:', err);
+      alert(`Error: ${err.response?.data?.message || err.message}`);
     }
   };
 
-  const toggleComments = (postId) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId
-          ? { ...post, showComments: !post.showComments }
-          : post
-      )
-    );
+  const handleDeletePost = (postId) => {
+    if (window.confirm("Delete this post?")) {
+      handleApiCall('delete', `/posts/${postId}`);
+    }
   };
 
-  const handleCommentChange = (postId, value) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId ? { ...post, newComment: value } : post
-      )
-    );
+  const handleDeleteComment = (postId, commentId) => {
+    if (window.confirm("Delete this comment?")) {
+      handleApiCall('delete', `/posts/${postId}/comments/${commentId}`);
+    }
+  };
+
+  const handleLike = async (postId) => {
+    if (!currentUser) {
+      alert('Please log in to like posts');
+      navigate('/login');
+      return;
+    }
+
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+
+    const isCurrentlyLiked = post.is_liked;
+    const newLikesCount = isCurrentlyLiked ? (post.likes_count || 0) - 1 : (post.likes_count || 0) + 1;
+
+    setPosts(prev => prev.map(p => 
+      p.id === postId 
+        ? { ...p, is_liked: !isCurrentlyLiked, likes_count: newLikesCount }
+        : p
+    ));
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`http://localhost:5000/api/community/posts/${postId}/like`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      setPosts(prev => prev.map(p => 
+        p.id === postId 
+          ? { ...p, is_liked: isCurrentlyLiked, likes_count: post.likes_count }
+          : p
+      ));
+      console.error('Like error:', err);
+      alert('Failed to update like. Please try again.');
+    }
   };
 
   const handleAddComment = async (postId) => {
+    if (!currentUser) {
+      alert('Please log in to comment');
+      navigate('/login');
+      return;
+    }
+
     const post = posts.find((p) => p.id === postId);
-    if (!post || !post.newComment.trim()) return;
+    if (!post || !post.newComment?.trim()) return;
+
+    const commentContent = post.newComment;
+    setPosts(posts.map(p => p.id === postId ? { ...p, newComment: '' } : p));
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Authentication required");
-
-      // Save comment text and clear input immediately
-      const commentText = post.newComment;
-      setPosts(
-        posts.map((p) => (p.id === postId ? { ...p, newComment: "" } : p))
+      const token = localStorage.getItem('token');
+      await axios.post(`http://localhost:5000/api/community/posts/${postId}/comments`, 
+        { content: commentContent }, 
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+    } catch (err) {
+      setPosts(posts.map(p => p.id === postId ? { ...p, newComment: commentContent } : p));
+      console.error('Comment error:', err);
+      alert('Failed to add comment. Please try again.');
+    }
+  };
 
-      // Send comment to backend
-      const response = await axios.post(
-        `http://localhost:5000/api/community/posts/${postId}/comments`,
-        { content: commentText },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+  const handleSubmitPost = async () => {
+    if (!currentUser) {
+      alert('Please log in to create posts');
+      navigate('/login');
+      return;
+    }
+
+    if (!newPostContent.trim() && !newPostImage) {
+      alert('Please add some content or an image');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("content", newPostContent);
+    if (newPostImage) formData.append("image", newPostImage);
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:5000/api/community/posts', formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data' 
         }
-      );
-
-      // Transform backend response to frontend format
-      const serverComment = response.data.comment;
-      const newComment = {
-        id: serverComment.id,
-        author: {
-          name: serverComment.author_name,
-          avatar:
-            serverComment.author_avatar ||
-            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&crop=face",
-        },
-        content: serverComment.content,
-        timestamp: formatTime(serverComment.created_at),
-      };
-
-      // Update state with new comment
-      setPosts(
-        posts.map((p) => {
-          if (p.id === postId) {
-            return {
-              ...p,
-              comments: [...p.comments, newComment],
-              showComments: true,
-            };
-          }
-          return p;
-        })
-      );
-    } catch (error) {
-      console.error("Error adding comment:", error);
-
-      // Restore comment text on error
-      setPosts(
-        posts.map((p) =>
-          p.id === postId ? { ...p, newComment: commentText } : p
-        )
-      );
-
-      alert("Failed to add comment. Please try again.");
+      });
+      setNewPostContent("");
+      setNewPostImage(null);
+      setPreviewImage(null);
+    } catch (err) {
+      console.error('Post creation error:', err);
+      alert('Failed to create post. Please try again.');
     }
   };
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => setSelectedImage(e.target.result);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmitPost = async () => {
-    if (!newPost.trim() && !selectedImage) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("No authentication token found");
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size must be less than 5MB');
         return;
       }
-
-      const formData = new FormData();
-      formData.append("content", newPost);
-
-      if (selectedImage) {
-        const blob = await fetch(selectedImage).then((res) => res.blob());
-        const file = new File([blob], "post-image.png", { type: blob.type });
-        formData.append("image", file);
-      }
-
-      const response = await axios.post(
-        "http://localhost:5000/api/community/posts",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      const serverPost = response.data.post;
-      const newPostData = {
-        id: serverPost.id,
-        author: {
-          name: serverPost.author_name,
-          avatar:
-            serverPost.author_avatar ||
-            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face",
-          club: "",
-          verified: false,
-        },
-        content: serverPost.content,
-        image: serverPost.image,
-        timestamp: "just now",
-        likes: parseInt(serverPost.likes_count),
-        comments: [],
-        shares: 0,
-        liked: false,
-        bookmarked: false,
-        showComments: false,
-        newComment: "",
-      };
-
-      setPosts([newPostData, ...posts]);
-      setNewPost("");
-      setSelectedImage(null);
-    } catch (error) {
-      console.error("Error creating post:", error);
+      setNewPostImage(file);
+      setPreviewImage(URL.createObjectURL(file));
     }
   };
 
-  const trendingTopics = [
-    { tag: "#TechFest2025", posts: "2.3K" },
-    { tag: "#CulturalNight", posts: "1.8K" },
-    { tag: "#StudyTips", posts: "1.2K" },
-    { tag: "#CampusLife", posts: "967" },
-    { tag: "#Innovation", posts: "543" },
-  ];
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => alert("Link copied!"));
+  };
 
-  const suggestedClubs = [
-    {
-      name: "Debate Society",
-      members: "156",
-      image:
-        "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=80&h=80&fit=crop",
-    },
-    {
-      name: "Music Club",
-      members: "234",
-      image:
-        "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=80&h=80&fit=crop",
-    },
-    {
-      name: "Gaming Society",
-      members: "189",
-      image:
-        "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=80&h=80&fit=crop",
-    },
-  ];
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading community posts...</p>
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600 mt-2">Loading Feed...</p>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50">
-        <div className="text-center p-6 bg-white rounded-xl shadow-md">
-          <div className="text-red-500 mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-12 w-12 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
+    if (error) {
+      return (
+        <div className="text-center py-8">
+          <h3 className="text-lg font-medium text-red-600 mb-2">Error</h3>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      );
+    }
+
+    if (posts.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No posts yet</h3>
+          <p className="text-gray-600">Be the first to share something with the community!</p>
+        </div>
+      );
+    }
+
+    return posts.map((post) => (
+      <div key={post.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 hover:shadow-md transition-shadow duration-200">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <img
+              src={post.user_profile_picture || DEFAULT_AVATAR}
+              alt={post.user_name}
+              className="w-11 h-11 rounded-full object-cover ring-2 ring-gray-100"
+            />
+            <div className="flex-1">
+              <div className="flex items-center space-x-3">
+                <h3 className="font-semibold text-gray-900 text-sm">{post.user_name}</h3>
+                {currentUser && currentUser.id !== post.user_id && (
+                  <button
+                    onClick={() => handleDirectMessage(post.user_id)}
+                    className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors duration-150 border border-blue-200"
+                    title="Send direct message"
+                  >
+                    <Mail className="w-3 h-3 mr-1" />
+                    Message
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">{formatTime(post.created_at)}</p>
+            </div>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Error loading posts
-          </h3>
-          <p className="text-gray-600 mb-4">{error}</p>
+          
+          {currentUser && currentUser.id === post.user_id && (
+            <div className="relative" ref={optionsMenuRef}>
+              <button
+                onClick={() => setOptionsMenu(optionsMenu === post.id ? null : post.id)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-150"
+              >
+                <MoreHorizontal className="w-4 h-4 text-gray-500" />
+              </button>
+              {optionsMenu === post.id && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10 border border-gray-200 py-1">
+                  <button
+                    onClick={() => {
+                      handleDeletePost(post.id);
+                      setOptionsMenu(null);
+                    }}
+                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
+                  >
+                    <Trash2 className="w-4 h-4 mr-3" />
+                    Delete Post
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+          {post.image && (
+            <img
+              src={post.image}
+              alt="Post content"
+              className="mt-4 rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity border border-gray-200"
+              onClick={() => setLightboxState({
+                open: true,
+                slides: [{ src: post.image }]
+              })}
+            />
+          )}
+        </div>
+
+        <div className="flex items-center justify-between py-3 border-t border-gray-100">
           <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            onClick={() => handleLike(post.id)}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-150 ${
+              post.is_liked 
+                ? 'text-red-600 bg-red-50 border border-red-200' 
+                : 'text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200'
+            }`}
           >
-            Retry
+            <Heart className={`w-4 h-4 ${post.is_liked ? 'fill-current' : ''}`} />
+            <span className="text-sm font-medium">{post.likes_count || 0}</span>
+          </button>
+
+          <button
+            onClick={() => setPosts(posts.map(p => p.id === post.id ? { ...p, showComments: !p.showComments } : p))}
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-all duration-150 border border-transparent hover:border-gray-200"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-sm font-medium">{post.comments_count || 0}</span>
+          </button>
+
+          <button
+            onClick={() => setShareModalState({ isOpen: true, post })}
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-all duration-150 border border-transparent hover:border-gray-200"
+          >
+            <Share2 className="w-4 h-4" />
+            <span className="text-sm font-medium">Share</span>
           </button>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-      <div className="pt-20 pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h1 className="text-5xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
-                Community Hub
-              </span>
-            </h1>
-            <p className="text-xl text-gray-600">
-              Connect, share, and inspire with your campus community
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-1 space-y-6">
-              <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-lg">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                  <TrendingUp className="mr-2 text-blue-600" size={20} />
-                  Trending Topics
-                </h3>
-                <div className="space-y-3">
-                  {trendingTopics.map((topic, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center p-3 rounded-xl hover:bg-blue-50 cursor-pointer transition-all duration-200"
-                    >
-                      <span className="font-medium text-blue-600">
-                        {topic.tag}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {topic.posts}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-lg">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                  <Users className="mr-2 text-purple-600" size={20} />
-                  Suggested Clubs
-                </h3>
-                <div className="space-y-4">
-                  {suggestedClubs.map((club, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center space-x-3 p-3 rounded-xl hover:bg-purple-50 cursor-pointer transition-all duration-200"
-                    >
-                      <img
-                        src={club.image}
-                        alt={club.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">
-                          {club.name}
-                        </h4>
-                        <p className="text-sm text-gray-500">
-                          {club.members} members
-                        </p>
+        {post.showComments && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="space-y-4 mb-4">
+              {(post.comments || []).map((comment) => (
+                <div key={comment.id} className="flex items-start space-x-3">
+                  <img
+                    src={comment.user_profile_picture || DEFAULT_AVATAR}
+                    alt={comment.user_name}
+                    className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
+                  />
+                  <div className="flex-1 bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-medium text-sm text-gray-900">{comment.user_name}</h4>
+                        {currentUser && currentUser.id !== comment.user_id && (
+                          <button
+                            onClick={() => handleDirectMessage(comment.user_id)}
+                            className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors duration-150 border border-blue-200"
+                            title="Send direct message"
+                          >
+                            <Mail className="w-2.5 h-2.5 mr-1" />
+                            Message
+                          </button>
+                        )}
                       </div>
+                      {currentUser && currentUser.id === comment.user_id && (
+                        <button
+                          onClick={() => handleDeleteComment(post.id, comment.id)}
+                          className="text-red-500 hover:text-red-700 p-1 rounded transition-colors duration-150"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
-                  ))}
+                    <p className="text-sm text-gray-800 leading-relaxed">{comment.content}</p>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
 
-            <div className="lg:col-span-3 space-y-6">
-              <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-lg">
+            {currentUser && (
+              <div className="flex items-center space-x-3">
+                <img
+                  src={currentUser.profilePicture || DEFAULT_AVATAR}
+                  alt={currentUser.name}
+                  className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
+                />
+                <div className="flex-1 flex space-x-2">
+                  <input
+                    type="text"
+                    value={post.newComment || ''}
+                    onChange={(e) => setPosts(posts.map(p => p.id === post.id ? { ...p, newComment: e.target.value } : p))}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                    placeholder="Write a comment..."
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                  <button
+                    onClick={() => handleAddComment(post.id)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    ));
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3">
+            {currentUser && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
                 <div className="flex items-start space-x-4">
                   <img
-                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face"
-                    alt="Your avatar"
-                    className="w-12 h-12 rounded-full object-cover"
+                    src={currentUser.profilePicture || DEFAULT_AVATAR}
+                    alt={currentUser.name}
+                    className="w-11 h-11 rounded-full object-cover ring-2 ring-gray-100"
                   />
                   <div className="flex-1">
                     <textarea
-                      value={newPost}
-                      onChange={(e) => setNewPost(e.target.value)}
-                      placeholder="What's happening in your campus life?"
-                      className="w-full p-4 border-0 resize-none focus:outline-none bg-gray-50 rounded-xl text-gray-900 placeholder-gray-500"
+                      value={newPostContent}
+                      onChange={(e) => setNewPostContent(e.target.value)}
+                      placeholder="What's on your mind?"
+                      className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm leading-relaxed"
                       rows="3"
                     />
-                    {selectedImage && (
-                      <div className="mt-4 relative">
+                    
+                    {previewImage && (
+                      <div className="mt-4 relative w-full max-h-60 overflow-hidden rounded-lg bg-gray-100 border border-gray-200">
                         <img
-                          src={selectedImage}
-                          alt="Selected"
-                          className="w-full max-h-64 object-cover rounded-xl"
+                          src={previewImage}
+                          alt="Preview"
+                          className="w-full h-auto object-cover object-center"
+                          style={{ maxHeight: '240px' }}
                         />
                         <button
-                          onClick={() => setSelectedImage(null)}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
+                          onClick={() => {
+                            setPreviewImage(null);
+                            setNewPostImage(null);
+                          }}
+                          className="absolute top-3 right-3 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg transition-colors duration-150"
+                          aria-label="Remove image"
                         >
-                          ×
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     )}
-                    <div className="flex justify-between items-center mt-4">
-                      <label className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 cursor-pointer">
-                        <Image size={20} />
+                    
+                    <div className="flex items-center justify-between mt-4">
+                      <label className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 cursor-pointer transition-colors duration-150 px-3 py-2 rounded-lg hover:bg-gray-50">
+                        <ImageIcon className="w-5 h-5" />
                         <span className="text-sm font-medium">Add Photo</span>
                         <input
                           type="file"
@@ -480,179 +496,95 @@ const Community = () => {
                           className="hidden"
                         />
                       </label>
+                      
                       <button
                         onClick={handleSubmitPost}
-                        className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:shadow-lg hover:shadow-blue-500/25 hover:scale-105 transition-all duration-300 flex items-center space-x-2"
+                        disabled={!newPostContent.trim() && !newPostImage}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 shadow-sm font-medium text-sm"
                       >
-                        <Send size={16} />
-                        <span>Post</span>
+                        Post
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
+            )}
 
-              <div className="space-y-6">
-                {posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="bg-white/70 backdrop-blur-lg rounded-2xl border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <img
-                            src={post.author.avatar}
-                            alt={post.author.name}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <h3 className="font-bold text-gray-900">
-                                {post.author.name}
-                              </h3>
-                              {post.author.verified && (
-                                <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                                </div>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-500">
-                              {post.author.club} • {post.timestamp}
-                            </p>
-                          </div>
-                        </div>
-                        <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                          <MoreHorizontal size={20} />
-                        </button>
-                      </div>
+            {renderContent()}
+          </div>
 
-                      <p className="text-gray-800 mb-4 leading-relaxed">
-                        {post.content}
-                      </p>
-
-                      {post.image && (
-                        <div className="mb-4 rounded-xl overflow-hidden">
-                          <img
-                            src={post.image}
-                            alt="Post content"
-                            className="w-full h-auto object-cover"
-                          />
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <div className="flex items-center space-x-6">
-                          <button
-                            onClick={() => handleLike(post.id)}
-                            className={`flex items-center space-x-2 transition-all duration-200 ${
-                              post.liked
-                                ? "text-red-500 hover:text-red-600"
-                                : "text-gray-500 hover:text-red-500"
-                            }`}
-                          >
-                            <Heart
-                              size={20}
-                              fill={post.liked ? "currentColor" : "none"}
-                            />
-                            <span className="font-medium">{post.likes}</span>
-                          </button>
-
-                          <button
-                            onClick={() => toggleComments(post.id)}
-                            className={`flex items-center space-x-2 transition-all duration-200 ${
-                              post.showComments
-                                ? "text-blue-600"
-                                : "text-gray-500 hover:text-blue-600"
-                            }`}
-                          >
-                            <MessageCircle size={20} />
-                            <span className="font-medium">
-                              {post.comments.length}
-                            </span>
-                          </button>
-
-                          <button className="flex items-center space-x-2 text-gray-500 hover:text-green-600 transition-all duration-200">
-                            <Share2 size={20} />
-                            <span className="font-medium">{post.shares}</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Comments Section */}
-                      {post.showComments && (
-                        <div className="mt-6 pt-4 border-t border-gray-100">
-                          <div className="space-y-4">
-                            {post.comments.map((comment) => (
-                              <div
-                                key={comment.id}
-                                className="flex items-start space-x-3"
-                              >
-                                <img
-                                  src={comment.author.avatar}
-                                  alt={comment.author.name}
-                                  className="w-8 h-8 rounded-full object-cover mt-1"
-                                />
-                                <div className="flex-1">
-                                  <div className="bg-gray-50 rounded-xl p-3">
-                                    <div className="flex items-baseline">
-                                      <h4 className="font-semibold text-sm">
-                                        {comment.author.name}
-                                      </h4>
-                                      <span className="text-xs text-gray-500 ml-2">
-                                        {comment.timestamp}
-                                      </span>
-                                    </div>
-                                    <p className="text-gray-700 mt-1">
-                                      {comment.content}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Add Comment Form */}
-                          <div className="mt-4 flex items-center space-x-3">
-                            <img
-                              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&crop=face"
-                              alt="Your avatar"
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                            <div className="flex-1 flex bg-gray-50 rounded-full px-4 py-2">
-                              <input
-                                type="text"
-                                value={post.newComment}
-                                onChange={(e) =>
-                                  handleCommentChange(post.id, e.target.value)
-                                }
-                                placeholder="Write a comment..."
-                                className="flex-1 bg-transparent border-0 focus:outline-none text-sm"
-                                onKeyPress={(e) =>
-                                  e.key === "Enter" && handleAddComment(post.id)
-                                }
-                              />
-                              <button
-                                onClick={() => handleAddComment(post.id)}
-                                className="text-blue-600 hover:text-blue-700"
-                              >
-                                <Send size={18} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="lg:col-span-1">
+            <OnlineUsers />
           </div>
         </div>
       </div>
 
-      <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full blur-3xl opacity-10"></div>
-      <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-br from-pink-400 to-blue-500 rounded-full blur-3xl opacity-10"></div>
+      <Lightbox
+        open={lightboxState.open}
+        close={() => setLightboxState({ open: false, slides: [] })}
+        slides={lightboxState.slides}
+      />
+
+      {shareModalState.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl border border-gray-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Share Post</h3>
+              <button
+                onClick={() => setShareModalState({ isOpen: false, post: null })}
+                className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors duration-150"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex space-x-3">
+                <FacebookShareButton
+                  url={window.location.href}
+                  quote={shareModalState.post?.content}
+                  className="flex-1"
+                >
+                  <div className="flex items-center justify-center space-x-2 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm">
+                    <FacebookIcon size={20} round />
+                    <span className="font-medium">Facebook</span>
+                  </div>
+                </FacebookShareButton>
+                
+                <TwitterShareButton
+                  url={window.location.href}
+                  title={shareModalState.post?.content}
+                  className="flex-1"
+                >
+                  <div className="flex items-center justify-center space-x-2 p-3 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors duration-150 shadow-sm">
+                    <TwitterIcon size={20} round />
+                    <span className="font-medium">Twitter</span>
+                  </div>
+                </TwitterShareButton>
+              </div>
+              
+              <LinkedinShareButton
+                url={window.location.href}
+                title={shareModalState.post?.content}
+                className="w-full"
+              >
+                <div className="flex items-center justify-center space-x-2 p-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors duration-150 shadow-sm">
+                  <LinkedinIcon size={20} round />
+                  <span className="font-medium">LinkedIn</span>
+                </div>
+              </LinkedinShareButton>
+              
+              <button
+                onClick={() => copyToClipboard(window.location.href)}
+                className="w-full flex items-center justify-center space-x-2 p-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-150 border border-gray-300"
+              >
+                <LinkIcon className="w-5 h-5" />
+                <span className="font-medium">Copy Link</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

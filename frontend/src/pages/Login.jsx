@@ -55,13 +55,11 @@ const Login = () => {
 
       axios.post('http://localhost:5000/api/auth/login', formData)
         .then(response => {
-          // Save token to localStorage
           localStorage.setItem('token', response.data.token);
-          
-          // Dispatch user data to Redux store
-          dispatch(setUser(response.data.user));
-          
-          // Redirect to home page
+          dispatch(setUser({
+            user: response.data.user,
+            token: response.data.token
+          }));
           navigate('/');
         })
         .catch(error => {
@@ -190,7 +188,7 @@ const Login = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </div> 
   );
 };
 

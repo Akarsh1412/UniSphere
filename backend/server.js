@@ -1,53 +1,59 @@
-import app from './app.js';
+import http from 'http';
+import { Server } from 'socket.io';
+import createApp from './app.js';
 import pool from './config/database.js';
 import migrationManager from './config/migrations.js';
+import initializeSocket from './socket/socketHandler.js';
 
 const PORT = process.env.PORT || 5000;
-
-const gracefulShutdown = (signal, server) => {
-  console.log(`Received ${signal}. Starting graceful shutdown...`);
-  
-  server.close(() => {
-    console.log('HTTP server closed.');
-    
-    pool.end(() => {
-      console.log('Database connection pool closed.');
-      process.exit(0);
-    });
-  });
-  
-  setTimeout(() => {
-    console.error('Could not close connections in time, forcefully shutting down');
-    process.exit(1);
-  }, 10000);
-};
 
 const startServer = async () => {
   try {
     console.log('Starting UniSphere Backend Server...');
     
-    const client = await pool.connect();
-    console.log('Connected to Aiven PostgreSQL database');
-    client.release();
-    
     await migrationManager.runMigrations();
     
-    const server = app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`API URL: http://localhost:${PORT}/api`);
-      console.log(`Health check: http://localhost:${PORT}/api/health`);
-      console.log(`API docs: http://localhost:${PORT}/api`);
-      console.log('UniSphere Backend is ready!');
+    const client = await pool.connect();
+    console.log('✅ Connected to Aiven PostgreSQL database');
+    client.release();
+
+    const app = createApp();
+    const server = http.createServer(app);
+
+    const io = new Server(server, {
+      cors: {
+        origin: process.env.NODE_ENV === 'production' 
+          ? process.env.FRONTEND_URL 
+          : ['http://localhost:5173', 'http://localhost:5174'],
+        methods: ["GET", "POST", "PUT", "DELETE"]
+      }
     });
     
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
+    app.set('io', io);
+    initializeSocket(io);
     
-    return server;
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🌱 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log('🎉 UniSphere Backend is ready!');
+    });
+    
+    const gracefulShutdown = (signal) => {
+        console.log(`Received ${signal}. Starting graceful shutdown...`);
+        server.close(() => {
+            console.log('HTTP server closed.');
+            pool.end(() => {
+                console.log('Database connection pool closed.');
+                process.exit(0);
+            });
+        });
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
     
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 };

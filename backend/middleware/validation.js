@@ -12,6 +12,13 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
+export const validateCommentId = [
+  param('commentId')
+    .isInt({ min: 1 })
+    .withMessage('Comment ID must be a positive integer'),
+  handleValidationErrors
+];
+
 // Auth validations
 export const validateRegister = [
   body('name')
