@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
 import { Menu, X, MessageSquare } from "lucide-react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { resetUnreadCount, fetchUnreadCount } from "../redux/chatSlice";
+import { fetchUnreadCount } from "../redux/chatSlice";
 import { useLogout } from "../hooks/useLogout";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const user = useSelector(state => state.user);
-  const { unreadCount } = useSelector(state => state.chat);
+  const user = useSelector((state) => state.user);
+  const { unreadCount } = useSelector((state) => state.chat);
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const logout = useLogout();
 
   const navItems = [
@@ -26,7 +25,7 @@ const Navbar = () => {
   useEffect(() => {
     if (user) {
       dispatch(fetchUnreadCount());
-      
+
       // Set up interval to periodically check for new messages
       const interval = setInterval(() => {
         dispatch(fetchUnreadCount());
@@ -36,18 +35,12 @@ const Navbar = () => {
     }
   }, [user, dispatch]);
 
-  const handleChatClick = () => {
-    dispatch(resetUnreadCount());
-    navigate('/chat');
-    setIsOpen(false);
-  };
-
   const handleLogout = () => {
     logout();
     setIsOpen(false);
   };
 
-  const firstName = user?.name?.split(' ')[0] || null;
+  const firstName = user?.name?.split(" ")[0] || null;
   const isAuthenticated = !!user;
 
   return (
@@ -74,20 +67,35 @@ const Navbar = () => {
               // Special handling for Messages item
               if (item.name === "Messages") {
                 return isAuthenticated ? (
-                  <button
+                  <NavLink
                     key={item.name}
-                    onClick={handleChatClick}
-                    className="relative px-3 py-2 text-sm font-medium transition-all duration-300 group text-gray-700 hover:text-blue-600 flex items-center space-x-1"
+                    to={item.path}
+                    onClick={() => setIsOpen(false)}
+                    className={({ isActive }) =>
+                      `relative px-3 py-2 text-sm font-medium transition-all duration-300 group flex items-center space-x-1 ${
+                        isActive
+                          ? "text-blue-600"
+                          : "text-gray-700 hover:text-blue-600"
+                      }`
+                    }
                   >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>{item.name}</span>
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium ring-2 ring-white">
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                      </span>
+                    {({ isActive }) => (
+                      <>
+                        <MessageSquare className="w-4 h-4" />
+                        <span>{item.name}</span>
+                        {unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium ring-2 ring-white">
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        )}
+                        <span
+                          className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300 ${
+                            isActive ? "w-full" : "w-0 group-hover:w-full"
+                          }`}
+                        ></span>
+                      </>
                     )}
-                    <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300 w-0 group-hover:w-full"></span>
-                  </button>
+                  </NavLink>
                 ) : null;
               }
 
@@ -98,7 +106,9 @@ const Navbar = () => {
                   to={item.path}
                   className={({ isActive }) =>
                     `relative px-3 py-2 text-sm font-medium transition-all duration-300 group ${
-                      isActive ? "text-blue-600" : "text-gray-700 hover:text-blue-600"
+                      isActive
+                        ? "text-blue-600"
+                        : "text-gray-700 hover:text-blue-600"
                     }`
                   }
                 >
@@ -117,25 +127,28 @@ const Navbar = () => {
             })}
 
             {isAuthenticated ? (
-              <Link to="/profile" className="flex items-center space-x-3 group transition-all duration-300">
+              <Link
+                to="/profile"
+                className="flex items-center space-x-3 group transition-all duration-300"
+              >
                 {user.profilePicture ? (
-                  <img 
-                    src={user.profilePicture} 
-                    alt="Profile" 
-                    className="w-9 h-9 rounded-full object-cover border-2 border-transparent group-hover:border-blue-500 transition-colors" 
+                  <img
+                    src={user.profilePicture}
+                    alt="Profile"
+                    className="w-9 h-9 rounded-full object-cover border-2 border-transparent group-hover:border-blue-500 transition-colors"
                   />
                 ) : (
                   <div className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium">
-                    {firstName ? firstName.charAt(0).toUpperCase() : 'U'}
+                    {firstName ? firstName.charAt(0).toUpperCase() : "U"}
                   </div>
                 )}
                 <span className="font-medium text-gray-700 group-hover:text-blue-600 hidden lg:inline">
-                  {firstName || 'Profile'}
+                  {firstName || "Profile"}
                 </span>
               </Link>
             ) : (
-              <Link 
-                to="/login" 
+              <Link
+                to="/login"
                 className="relative px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-full overflow-hidden group transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:scale-105"
               >
                 <span className="relative z-10">Login</span>
@@ -144,8 +157,8 @@ const Navbar = () => {
           </div>
 
           <div className="md:hidden">
-            <button 
-              onClick={toggleMenu} 
+            <button
+              onClick={toggleMenu}
               className="p-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-100 transition-all duration-300"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -154,18 +167,29 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Menu */}
-        <div className={`md:hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-screen opacity-100 pb-6" : "max-h-0 opacity-0 overflow-hidden"
-        }`}>
+        <div
+          className={`md:hidden transition-all duration-300 ease-in-out ${
+            isOpen
+              ? "max-h-screen opacity-100 pb-6"
+              : "max-h-0 opacity-0 overflow-hidden"
+          }`}
+        >
           <div className="pt-4 space-y-2">
             {navItems.map((item) => {
               // Special handling for Messages item in mobile
               if (item.name === "Messages") {
                 return isAuthenticated ? (
-                  <button
+                  <NavLink
                     key={item.name}
-                    onClick={handleChatClick}
-                    className="w-full flex items-center justify-between px-4 py-3 text-base font-medium rounded-lg text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300"
+                    to={item.path}
+                    onClick={() => setIsOpen(false)}
+                    className={({ isActive }) =>
+                      `w-full flex items-center justify-between px-4 py-3 text-base font-medium rounded-lg transition-all duration-300 ${
+                        isActive
+                          ? "text-blue-600 bg-blue-50"
+                          : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                      }`
+                    }
                   >
                     <div className="flex items-center space-x-2">
                       <MessageSquare className="w-5 h-5" />
@@ -173,23 +197,23 @@ const Navbar = () => {
                     </div>
                     {unreadCount > 0 && (
                       <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center">
-                        {unreadCount > 99 ? '99+' : unreadCount}
+                        {unreadCount > 99 ? "99+" : unreadCount}
                       </span>
                     )}
-                  </button>
+                  </NavLink>
                 ) : null;
               }
 
               // Regular nav items for mobile
               return (
-                <NavLink 
-                  key={item.name} 
-                  to={item.path} 
-                  onClick={() => setIsOpen(false)} 
-                  className={({ isActive }) => 
+                <NavLink
+                  key={item.name}
+                  to={item.path}
+                  onClick={() => setIsOpen(false)}
+                  className={({ isActive }) =>
                     `block px-4 py-3 rounded-lg text-base font-medium transition-all duration-300 ${
-                      isActive 
-                        ? "text-blue-600 bg-blue-50" 
+                      isActive
+                        ? "text-blue-600 bg-blue-50"
                         : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
                     }`
                   }
@@ -198,27 +222,27 @@ const Navbar = () => {
                 </NavLink>
               );
             })}
-            
+
             {isAuthenticated ? (
               <div className="border-t border-gray-200 mt-4 pt-4 space-y-2">
-                <Link 
-                  to="/profile" 
-                  onClick={() => setIsOpen(false)} 
+                <Link
+                  to="/profile"
+                  onClick={() => setIsOpen(false)}
                   className="block w-full px-4 py-3 text-base font-medium rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-all duration-300"
                 >
                   My Profile
                 </Link>
-                <button 
-                  onClick={handleLogout} 
+                <button
+                  onClick={handleLogout}
                   className="w-full text-left px-4 py-3 text-base font-medium rounded-lg text-red-600 hover:bg-red-50 transition-all duration-300"
                 >
                   Log Out
                 </button>
               </div>
             ) : (
-              <Link 
-                to="/login" 
-                onClick={() => setIsOpen(false)} 
+              <Link
+                to="/login"
+                onClick={() => setIsOpen(false)}
                 className="block w-full mt-4 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg text-center hover:shadow-lg transition-all duration-300"
               >
                 Login

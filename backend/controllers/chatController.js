@@ -1,4 +1,7 @@
 import { DirectMessage, User, pool } from '../models/index.js';
+import Ably from 'ably';
+
+const ably = new Ably.Realtime(process.env.ABLY_API_KEY);
 
 export const getUnreadCount = async (req, res, next) => {
     try {
@@ -61,7 +64,10 @@ export const sendMessage = async (req, res, next) => {
         const senderId = req.user.userId;
 
         if (!receiverId || !content) {
-            return res.status(400).json({ success: false, message: "Receiver and content are required." });
+            return res.status(400).json({ 
+                success: false, 
+                message: "Receiver and content are required." 
+            });
         }
 
         const newMessage = await DirectMessage.create({
@@ -70,7 +76,16 @@ export const sendMessage = async (req, res, next) => {
             content
         });
         
-        req.io.to(receiverId.toString()).emit('receivePrivateMessage', newMessage);
+        // Publish to Ably instead of Socket.IO
+        const channel = ably.channels.get(`private-messages-${receiverId}`);
+        await channel.publish('new-message', newMessage);
+        
+        // Send notification
+        const notificationChannel = ably.channels.get(`notifications-${receiverId}`);
+        await notificationChannel.publish('unread-message', {
+            senderId,
+            content: content.substring(0, 50) + (content.length > 50 ? '...' : '')
+        });
         
         res.status(201).json({ success: true, message: newMessage });
     } catch (error) {

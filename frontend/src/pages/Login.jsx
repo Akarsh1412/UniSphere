@@ -56,10 +56,7 @@ const Login = () => {
       axios.post('http://localhost:5000/api/auth/login', formData)
         .then(response => {
           localStorage.setItem('token', response.data.token);
-          dispatch(setUser({
-            user: response.data.user,
-            token: response.data.token
-          }));
+          dispatch(setUser(response.data.user));
           navigate('/');
         })
         .catch(error => {

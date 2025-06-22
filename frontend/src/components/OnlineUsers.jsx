@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Users, MessageCircle, Wifi } from 'lucide-react';
-import { getSocket } from '../socket';
+import { usePresence } from 'ably/react';
 
 const OnlineUsers = () => {
   const [users, setUsers] = useState([]);
@@ -10,25 +10,46 @@ const OnlineUsers = () => {
   const navigate = useNavigate();
   const DEFAULT_AVATAR = "https://placehold.co/150x150/E2E8F0/4A5568?text=U";
 
+  // Use Ably presence to track online users
+  const { presenceData, updateStatus } = usePresence('online-users', 
+    currentUser ? {
+      id: currentUser.id,
+      name: currentUser.name,
+      avatar: currentUser.avatar || currentUser.profilePicture,
+      email: currentUser.email
+    } : null
+  );
+
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+    if (!presenceData || !Array.isArray(presenceData)) {
+      setUsers([]);
+      return;
+    }
 
-    const handleUpdate = (onlineUsers) => {
-      // Filter out current user from the list
-      const filteredUsers = onlineUsers.filter(user => user.id !== currentUser?.id);
-      setUsers(filteredUsers);
-    };
+    const filteredUsers = presenceData
+      .filter(member => member.data?.id !== currentUser?.id)
+      .map(member => ({
+        id: member.data?.id,
+        name: member.data?.name,
+        avatar: member.data?.avatar,
+        email: member.data?.email,
+        clientId: member.clientId
+      }))
+      .filter(user => user.id);
 
-    socket.on('updateOnlineUsers', handleUpdate);
-    
-    // Request initial list
-    socket.emit('getOnlineUsers');
+    setUsers(filteredUsers);
+  }, [presenceData, currentUser]);
 
-    return () => {
-      socket.off('updateOnlineUsers', handleUpdate);
-    };
-  }, [currentUser]);
+  useEffect(() => {
+    if (currentUser && updateStatus) {
+      updateStatus({
+        id: currentUser.id,
+        name: currentUser.name,
+        avatar: currentUser.avatar || currentUser.profilePicture,
+        email: currentUser.email
+      });
+    }
+  }, [currentUser, updateStatus]);
 
   const handleStartChat = (userId) => {
     if (!currentUser) {
@@ -40,6 +61,7 @@ const OnlineUsers = () => {
   };
 
   const getInitials = (name) => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map(word => word.charAt(0))
@@ -50,7 +72,6 @@ const OnlineUsers = () => {
 
   return (
     <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
           <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg">
@@ -69,12 +90,11 @@ const OnlineUsers = () => {
         </div>
       </div>
 
-      {/* Users List */}
       <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         {users.length > 0 ? (
           users.map((user) => (
             <div 
-              key={user.id} 
+              key={user.clientId || user.id} 
               className="group flex items-center justify-between p-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300 cursor-pointer border border-transparent hover:border-blue-200/50"
               onClick={() => handleStartChat(user.id)}
             >
@@ -83,15 +103,19 @@ const OnlineUsers = () => {
                   {user.avatar ? (
                     <img
                       src={user.avatar}
-                      alt={user.name}
+                      alt={user.name || 'User'}
                       className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm group-hover:border-blue-300 transition-colors"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
                     />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm border-2 border-white shadow-sm group-hover:border-blue-300 transition-colors">
-                      {getInitials(user.name)}
-                    </div>
-                  )}
-                  {/* Online indicator */}
+                  ) : null}
+                  <div 
+                    className={`w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm border-2 border-white shadow-sm group-hover:border-blue-300 transition-colors ${user.avatar ? 'hidden' : 'flex'}`}
+                  >
+                    {getInitials(user.name)}
+                  </div>
                   <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                   </div>
@@ -99,7 +123,7 @@ const OnlineUsers = () => {
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-800 group-hover:text-blue-700 transition-colors truncate">
-                    {user.name}
+                    {user.name || 'Anonymous User'}
                   </p>
                   <p className="text-xs text-green-600 font-medium">
                     Active now
@@ -107,7 +131,6 @@ const OnlineUsers = () => {
                 </div>
               </div>
 
-              {/* Message button */}
               <button 
                 className="opacity-0 group-hover:opacity-100 p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-all duration-300 transform scale-90 group-hover:scale-100"
                 onClick={(e) => {
@@ -131,7 +154,6 @@ const OnlineUsers = () => {
         )}
       </div>
 
-      {/* Footer */}
       {users.length > 0 && (
         <div className="mt-4 pt-4 border-t border-gray-200/50">
           <div className="flex items-center justify-center space-x-2 text-xs text-gray-500">

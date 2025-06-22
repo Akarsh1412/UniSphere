@@ -241,6 +241,7 @@ export const getClubCategories = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 export const createClub = async (req, res) => {
   try {
     const {

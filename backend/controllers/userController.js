@@ -5,46 +5,84 @@ import { Resend } from 'resend';
 
 const { bcryptSaltRounds } = authConfig;
 
+export const getCurrentUser = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const result = await pool.query(
+      'SELECT id, name, email, profile_picture, registration_number, role, created_at FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      user: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Get current user error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+};
+
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { name, profilePicture, registrationNumber } = req.body;
+    const { name, registrationNumber, profilePicture } = req.body; // profilePicture will be the Cloudinary URL
     
     // Build dynamic update query
     const updateFields = [];
     const params = [];
     let paramCount = 1;
     
-    if (name) {
+    if (name && name.trim()) {
       updateFields.push(`name = $${paramCount}`);
-      params.push(name);
+      params.push(name.trim());
       paramCount++;
     }
     
+    // Handle profile picture URL from middleware
     if (profilePicture) {
       updateFields.push(`profile_picture = $${paramCount}`);
-      params.push(profilePicture);
+      params.push(profilePicture); // This is now the Cloudinary URL from middleware
       paramCount++;
     }
     
-    if (registrationNumber) {
-      // Check if registration number is already taken
-      const existingUser = await pool.query(
-        'SELECT id FROM users WHERE registration_number = $1 AND id != $2',
-        [registrationNumber, userId]
-      );
-      
-      if (existingUser.rows.length > 0) {
-        return res.status(400).json({ message: 'Registration number already taken' });
+    if (registrationNumber !== undefined) {
+      // Check if registration number is already taken (only if it's being changed)
+      if (registrationNumber.trim() !== '') {
+        const existingUser = await pool.query(
+          'SELECT id FROM users WHERE registration_number = $1 AND id != $2',
+          [registrationNumber.trim(), userId]
+        );
+        
+        if (existingUser.rows.length > 0) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Registration number already taken' 
+          });
+        }
       }
       
       updateFields.push(`registration_number = $${paramCount}`);
-      params.push(registrationNumber);
+      params.push(registrationNumber.trim());
       paramCount++;
     }
     
     if (updateFields.length === 0) {
-      return res.status(400).json({ message: 'No fields to update' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No fields to update' 
+      });
     }
     
     updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
@@ -54,10 +92,17 @@ export const updateProfile = async (req, res) => {
       UPDATE users 
       SET ${updateFields.join(', ')}
       WHERE id = $${paramCount}
-      RETURNING id, name, email, profile_picture, registration_number, role, verified
+      RETURNING id, name, email, profile_picture, registration_number, role, created_at, updated_at
     `;
     
     const result = await pool.query(query, params);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
     
     res.json({
       success: true,
@@ -66,7 +111,10 @@ export const updateProfile = async (req, res) => {
     });
   } catch (error) {
     console.error('Update profile error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
   }
 };
 
