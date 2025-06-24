@@ -1,424 +1,617 @@
-import { useState, useEffect } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Image, Send, Users, TrendingUp } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  MoreHorizontal,
+  Image as ImageIcon,
+  Send,
+  Trash2,
+  X,
+  Link as LinkIcon,
+  MessageSquare,
+  Mail,
+} from "lucide-react";
+import {
+  FacebookShareButton,
+  TwitterShareButton,
+  LinkedinShareButton,
+  FacebookIcon,
+  TwitterIcon,
+  LinkedinIcon,
+} from "react-share";
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
+import { useChannel } from "ably/react";
+import OnlineUsers from "../components/OnlineUsers";
 
 const Community = () => {
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      author: {
-        name: "Sarah Chen",
-        avatar:
-          "https://images.unsplash.com/photo-1494790108755-2616b612b9c?w=50&h=50&fit=crop&crop=face",
-        club: "Photography Club",
-        verified: true,
-      },
-      content:
-        "Just captured this amazing sunset from the campus rooftop! The golden hour lighting was absolutely perfect for our photography workshop today. Can't wait to share more shots with everyone! 📸✨",
-      image:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop",
-      timestamp: "2 hours ago",
-      likes: 124,
-      comments: [
-        {
-          id: 1,
-          author: {
-            name: "Michael Wong",
-            avatar:
-              "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "Wow Sarah! The composition is perfect. What settings did you use?",
-          timestamp: "1 hour ago",
-        },
-        {
-          id: 2,
-          author: {
-            name: "Emma Thompson",
-            avatar:
-              "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "This makes me want to join the photography club! When are your next workshops?",
-          timestamp: "45 minutes ago",
-        },
-      ],
-      shares: 8,
-      liked: false,
-      bookmarked: false,
-      showComments: false,
-      newComment: "",
-    },
-    {
-      id: 2,
-      author: {
-        name: "Alex Rodriguez",
-        avatar:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face",
-        club: "Robotics Club",
-        verified: true,
-      },
-      content:
-        "Our team just won the regional robotics competition! 🏆 All those late nights in the lab finally paid off. Special thanks to everyone who supported us. Next stop: nationals! #RoboticsLife #TeamWork",
-      image:
-        "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=400&fit=crop",
-      timestamp: "4 hours ago",
-      likes: 298,
-      comments: [
-        {
-          id: 1,
-          author: {
-            name: "Dr. Peterson",
-            avatar:
-              "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "Congratulations team! Your hard work and innovation paid off. Proud of you all!",
-          timestamp: "3 hours ago",
-        },
-        {
-          id: 2,
-          author: {
-            name: "TechEnthusiast",
-            avatar:
-              "https://images.unsplash.com/photo-1564564321837-a57b7070ac4f?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "What was your robot's main innovation? Would love to know more about the design!",
-          timestamp: "2 hours ago",
-        },
-      ],
-      shares: 22,
-      liked: true,
-      bookmarked: true,
-      showComments: false,
-      newComment: "",
-    },
-    {
-      id: 3,
-      author: {
-        name: "Maya Patel",
-        avatar:
-          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50&h=50&fit=crop&crop=face",
-        club: "Arts & Culture Society",
-        verified: false,
-      },
-      content:
-        "Rehearsals for our upcoming cultural night are going amazing! The energy and talent of our performers is incredible. This is going to be our best show yet! Who's excited to see what we've been working on? 🎭🎨",
-      timestamp: "6 hours ago",
-      likes: 87,
-      comments: [
-        {
-          id: 1,
-          author: {
-            name: "James Wilson",
-            avatar:
-              "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "The dance sequence you choreographed was mind-blowing! Can't wait to see it on stage.",
-          timestamp: "5 hours ago",
-        },
-      ],
-      shares: 5,
-      liked: false,
-      bookmarked: false,
-      showComments: false,
-      newComment: "",
-    },
-    {
-      id: 4,
-      author: {
-        name: "David Kim",
-        avatar:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face",
-        club: "Entrepreneurship Club",
-        verified: true,
-      },
-      content:
-        "Just launched our startup idea at the innovation summit! The feedback was incredible and we've already got three potential investors interested. Dreams do come true when you work hard and believe in yourself! 💼🚀",
-      image:
-        "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600&h=400&fit=crop",
-      timestamp: "8 hours ago",
-      likes: 156,
-      comments: [
-        {
-          id: 1,
-          author: {
-            name: "Sophia Lee",
-            avatar:
-              "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "So proud of you David! This is just the beginning. Your pitch was flawless!",
-          timestamp: "7 hours ago",
-        },
-        {
-          id: 2,
-          author: {
-            name: "InvestorPro",
-            avatar:
-              "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "Impressive presentation. Would love to schedule a meeting to discuss further.",
-          timestamp: "6 hours ago",
-        },
-        {
-          id: 3,
-          author: {
-            name: "TechStartupFan",
-            avatar:
-              "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=40&h=40&fit=crop&crop=face",
-          },
-          content:
-            "What problem does your startup solve? Would love to hear more details!",
-          timestamp: "5 hours ago",
-        },
-      ],
-      shares: 15,
-      liked: false,
-      bookmarked: true,
-      showComments: false,
-      newComment: "",
-    },
-  ]);
+  const [posts, setPosts] = useState([]);
+  const [newPostContent, setNewPostContent] = useState("");
+  const [newPostImage, setNewPostImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lightboxState, setLightboxState] = useState({
+    open: false,
+    slides: [],
+  });
+  const [shareModalState, setShareModalState] = useState({
+    isOpen: false,
+    post: null,
+  });
+  const [optionsMenu, setOptionsMenu] = useState(null);
+  const currentUser = useSelector((state) => state.user);
+  const navigate = useNavigate();
+  const optionsMenuRef = useRef(null);
+  const DEFAULT_AVATAR = "https://placehold.co/150x150/E2E8F0/4A5568?text=U";
 
-  const [newPost, setNewPost] = useState("");
-  const [selectedImage, setSelectedImage] = useState(null);
+  // Ably channel subscription
+  const { channel } = useChannel("community-posts", (message) => {
+  const { name, data } = message;
 
-  const handleLike = (postId) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              liked: !post.liked,
-              likes: post.liked ? post.likes - 1 : post.likes + 1,
-            }
-          : post
-      )
-    );
-  };
+  switch (name) {
+    case "newPost":
+      setPosts((prev) => [data, ...prev]);
+      break;
+    case "deletePost":
+      setPosts((prev) => prev.filter((p) => parseInt(p.id) !== parseInt(data.postId)));
+      break;
+    case "updateLike":
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (parseInt(p.id) === parseInt(data.postId)) {
+            // Check if current user is in the likers array
+            const currentUserLiked = currentUser && data.likerIds.includes(parseInt(currentUser.id));
+            
+            return {
+              ...p,
+              likes_count: parseInt(data.likesCount),
+              is_liked: Boolean(currentUserLiked) // Ensure boolean type
+            };
+          }
+          return p;
+        })
+      );
+      break;
+    case "newComment":
+      setPosts((prev) =>
+        prev.map((p) =>
+          parseInt(p.id) === parseInt(data.postId)
+            ? {
+                ...p,
+                comments: [...(p.comments || []), data.comment],
+                comments_count: (p.comments_count || 0) + 1,
+              }
+            : p
+        )
+      );
+      break;
+    case "deleteComment":
+      setPosts((prev) =>
+        prev.map((p) =>
+          parseInt(p.id) === parseInt(data.postId)
+            ? {
+                ...p,
+                comments: (p.comments || []).filter(
+                  (c) => parseInt(c.id) !== parseInt(data.commentId)
+                ),
+                comments_count: Math.max(0, (p.comments_count || 0) - 1),
+              }
+            : p
+        )
+      );
+      break;
+    case "sharePost":
+      setPosts((prev) =>
+        prev.map((p) =>
+          parseInt(p.id) === parseInt(data.postId)
+            ? { ...p, shares_count: data.sharesCount }
+            : p
+        )
+      );
+      break;
+    default:
+      break;
+  }
+});
 
-  const toggleComments = (postId) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId
-          ? { ...post, showComments: !post.showComments }
-          : post
-      )
-    );
-  };
-
-  const handleCommentChange = (postId, value) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId ? { ...post, newComment: value } : post
-      )
-    );
-  };
-
-  const handleAddComment = (postId) => {
-    setPosts(
-      posts.map((post) => {
-        if (post.id === postId && post.newComment.trim() !== "") {
-          const newComment = {
-            id: Date.now(), // Simple unique ID
-            author: {
-              name: "You",
-              avatar:
-                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&crop=face",
-            },
-            content: post.newComment,
-            timestamp: "just now",
-          };
-
-          return {
-            ...post,
-            comments: [...post.comments, newComment],
-            newComment: "",
-            showComments: true,
-          };
+  useEffect(() => {
+  const fetchPosts = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      console.log(token);
+      
+      const response = await axios.get(
+        "http://localhost:5000/api/community/posts",
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
-        return post;
-      })
+      );
+      
+      // Ensure is_liked is boolean for all posts
+      const postsWithBooleanLikes = response.data.posts.map((p) => ({
+        ...p,
+        showComments: false,
+        newComment: "",
+        is_liked: Boolean(p.is_liked) // Ensure boolean type
+      }));
+      
+      setPosts(postsWithBooleanLikes);
+    } catch (err) {
+      setError("Failed to load community feed. Please try again later.");
+      console.error("Error fetching posts:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchPosts();
+}, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        optionsMenuRef.current &&
+        !optionsMenuRef.current.contains(event.target)
+      ) {
+        setOptionsMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    if (diffInSeconds < 60) return "just now";
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  };
+
+  const handleDirectMessage = (userId) => {
+    if (!currentUser) {
+      alert("Please log in to send messages");
+      navigate("/login");
+      return;
+    }
+    navigate(`/chat/${userId}`);
+  };
+
+  const handleApiCall = async (method, url, data = null, headers = {}) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to perform this action");
+        navigate("/login");
+        return;
+      }
+
+      await axios({
+        method,
+        url: `http://localhost:5000/api/community${url}`,
+        data,
+        headers: { Authorization: `Bearer ${token}`, ...headers },
+      });
+    } catch (err) {
+      console.error("API call error:", err);
+      alert(`Error: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleDeletePost = (postId) => {
+    if (window.confirm("Delete this post?")) {
+      handleApiCall("delete", `/posts/${postId}`);
+    }
+  };
+
+  const handleDeleteComment = (postId, commentId) => {
+    if (window.confirm("Delete this comment?")) {
+      handleApiCall("delete", `/posts/${postId}/comments/${commentId}`);
+    }
+  };
+
+  const handleLike = async (postId) => {
+    if (!currentUser) {
+      alert("Please log in to like posts");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `http://localhost:5000/api/community/posts/${postId}/like`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      // Remove optimistic updates - let Ably handle the real-time sync
+    } catch (err) {
+      console.error("Like error:", err);
+      alert("Failed to update like. Please try again.");
+    }
+  };
+
+  const handleAddComment = async (postId) => {
+    if (!currentUser) {
+      alert("Please log in to comment");
+      navigate("/login");
+      return;
+    }
+
+    const post = posts.find((p) => p.id === postId);
+    if (!post || !post.newComment?.trim()) return;
+
+    const commentContent = post.newComment;
+    setPosts(
+      posts.map((p) => (p.id === postId ? { ...p, newComment: "" } : p))
     );
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `http://localhost:5000/api/community/posts/${postId}/comments`,
+        { content: commentContent },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (err) {
+      setPosts(
+        posts.map((p) =>
+          p.id === postId ? { ...p, newComment: commentContent } : p
+        )
+      );
+      console.error("Comment error:", err);
+      alert("Failed to add comment. Please try again.");
+    }
+  };
+
+  const handleSubmitPost = async () => {
+    if (!currentUser) {
+      alert("Please log in to create posts");
+      navigate("/login");
+      return;
+    }
+
+    if (!newPostContent.trim() && !newPostImage) {
+      alert("Please add some content or an image");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("content", newPostContent);
+    if (newPostImage) formData.append("image", newPostImage);
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post("http://localhost:5000/api/community/posts", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setNewPostContent("");
+      setNewPostImage(null);
+      setPreviewImage(null);
+    } catch (err) {
+      console.error("Post creation error:", err);
+      alert("Failed to create post. Please try again.");
+    }
   };
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => setSelectedImage(e.target.result);
-      reader.readAsDataURL(file);
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size must be less than 5MB");
+        return;
+      }
+      setNewPostImage(file);
+      setPreviewImage(URL.createObjectURL(file));
     }
   };
 
-  const handleSubmitPost = () => {
-    if (!newPost.trim() && !selectedImage) return;
-
-    const post = {
-      id: posts.length + 1,
-      author: {
-        name: "You",
-        avatar:
-          "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face",
-        club: "Student",
-        verified: false,
-      },
-      content: newPost,
-      image: selectedImage,
-      timestamp: "now",
-      likes: 0,
-      comments: [],
-      shares: 0,
-      liked: false,
-      bookmarked: false,
-      showComments: false,
-      newComment: "",
-    };
-
-    setPosts([post, ...posts]);
-    setNewPost("");
-    setSelectedImage(null);
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => alert("Link copied!"));
   };
 
-  const trendingTopics = [
-    { tag: "#TechFest2025", posts: "2.3K" },
-    { tag: "#CulturalNight", posts: "1.8K" },
-    { tag: "#StudyTips", posts: "1.2K" },
-    { tag: "#CampusLife", posts: "967" },
-    { tag: "#Innovation", posts: "543" },
-  ];
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600 mt-2">Loading Feed...</p>
+        </div>
+      );
+    }
 
-  const suggestedClubs = [
-    {
-      name: "Debate Society",
-      members: "156",
-      image:
-        "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=80&h=80&fit=crop",
-    },
-    {
-      name: "Music Club",
-      members: "234",
-      image:
-        "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=80&h=80&fit=crop",
-    },
-    {
-      name: "Gaming Society",
-      members: "189",
-      image:
-        "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=80&h=80&fit=crop",
-    },
-  ];
+    if (error) {
+      return (
+        <div className="text-center py-8">
+          <h3 className="text-lg font-medium text-red-600 mb-2">Error</h3>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      );
+    }
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+    if (posts.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No posts yet
+          </h3>
+          <p className="text-gray-600">
+            Be the first to share something with the community!
+          </p>
+        </div>
+      );
+    }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-      <div className="pt-20 pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h1 className="text-5xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
-                Community Hub
-              </span>
-            </h1>
-            <p className="text-xl text-gray-600">
-              Connect, share, and inspire with your campus community
-            </p>
+    return posts.map((post) => (
+      <div
+        key={post.id}
+        className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 hover:shadow-md transition-shadow duration-200"
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <img
+              src={post.user_profile_picture || DEFAULT_AVATAR}
+              alt={post.user_name}
+              className="w-11 h-11 rounded-full object-cover ring-2 ring-gray-100"
+            />
+            <div className="flex-1">
+              <div className="flex items-center space-x-3">
+                <h3 className="font-semibold text-gray-900 text-sm">
+                  {post.user_name}
+                </h3>
+                {currentUser && currentUser.id !== post.user_id && (
+                  <button
+                    onClick={() => handleDirectMessage(post.user_id)}
+                    className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors duration-150 border border-blue-200"
+                    title="Send direct message"
+                  >
+                    <Mail className="w-3 h-3 mr-1" />
+                    Message
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {formatTime(post.created_at)}
+              </p>
+            </div>
           </div>
 
-          <div className="grid lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-1 space-y-6">
-              <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-lg">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                  <TrendingUp className="mr-2 text-blue-600" size={20} />
-                  Trending Topics
-                </h3>
-                <div className="space-y-3">
-                  {trendingTopics.map((topic, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center p-3 rounded-xl hover:bg-blue-50 cursor-pointer transition-all duration-200"
-                    >
-                      <span className="font-medium text-blue-600">
-                        {topic.tag}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {topic.posts}
-                      </span>
-                    </div>
-                  ))}
+          {currentUser && currentUser.id === post.user_id && (
+            <div className="relative" ref={optionsMenuRef}>
+              <button
+                onClick={() =>
+                  setOptionsMenu(optionsMenu === post.id ? null : post.id)
+                }
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-150"
+              >
+                <MoreHorizontal className="w-4 h-4 text-gray-500" />
+              </button>
+              {optionsMenu === post.id && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10 border border-gray-200 py-1">
+                  <button
+                    onClick={() => {
+                      handleDeletePost(post.id);
+                      setOptionsMenu(null);
+                    }}
+                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
+                  >
+                    <Trash2 className="w-4 h-4 mr-3" />
+                    Delete Post
+                  </button>
                 </div>
-              </div>
+              )}
+            </div>
+          )}
+        </div>
 
-              <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-lg">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                  <Users className="mr-2 text-purple-600" size={20} />
-                  Suggested Clubs
-                </h3>
-                <div className="space-y-4">
-                  {suggestedClubs.map((club, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center space-x-3 p-3 rounded-xl hover:bg-purple-50 cursor-pointer transition-all duration-200"
-                    >
-                      <img
-                        src={club.image}
-                        alt={club.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">
-                          {club.name}
+        <div className="mb-4">
+          <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+            {post.content}
+          </p>
+          {post.image && (
+            <img
+              src={post.image}
+              alt="Post content"
+              className="mt-4 rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity border border-gray-200"
+              onClick={() =>
+                setLightboxState({
+                  open: true,
+                  slides: [{ src: post.image }],
+                })
+              }
+            />
+          )}
+        </div>
+
+        <div className="flex items-center justify-between py-3 border-t border-gray-100">
+          <button
+            onClick={() => handleLike(post.id)}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-150 ${
+              post.is_liked
+                ? "text-red-600 bg-red-50 border border-red-200"
+                : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
+            }`}
+          >
+            <Heart
+              className={`w-4 h-4 ${post.is_liked ? "fill-current" : ""}`}
+            />
+            <span className="text-sm font-medium">{post.likes_count || 0}</span>
+          </button>
+
+          <button
+            onClick={() =>
+              setPosts(
+                posts.map((p) =>
+                  p.id === post.id ? { ...p, showComments: !p.showComments } : p
+                )
+              )
+            }
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-all duration-150 border border-transparent hover:border-gray-200"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {post.comments_count || 0}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setShareModalState({ isOpen: true, post })}
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-all duration-150 border border-transparent hover:border-gray-200"
+          >
+            <Share2 className="w-4 h-4" />
+            <span className="text-sm font-medium">Share</span>
+          </button>
+        </div>
+
+        {post.showComments && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="space-y-4 mb-4">
+              {(post.comments || []).map((comment) => (
+                <div key={comment.id} className="flex items-start space-x-3">
+                  <img
+                    src={comment.user_profile_picture || DEFAULT_AVATAR}
+                    alt={comment.user_name}
+                    className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
+                  />
+                  <div className="flex-1 bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-medium text-sm text-gray-900">
+                          {comment.user_name}
                         </h4>
-                        <p className="text-sm text-gray-500">
-                          {club.members} members
-                        </p>
+                        {currentUser && currentUser.id !== comment.user_id && (
+                          <button
+                            onClick={() => handleDirectMessage(comment.user_id)}
+                            className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors duration-150 border border-blue-200"
+                            title="Send direct message"
+                          >
+                            <Mail className="w-2.5 h-2.5 mr-1" />
+                            Message
+                          </button>
+                        )}
                       </div>
+                      {currentUser && currentUser.id === comment.user_id && (
+                        <button
+                          onClick={() =>
+                            handleDeleteComment(post.id, comment.id)
+                          }
+                          className="text-red-500 hover:text-red-700 p-1 rounded transition-colors duration-150"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
-                  ))}
+                    <p className="text-sm text-gray-800 leading-relaxed">
+                      {comment.content}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
 
-            <div className="lg:col-span-3 space-y-6">
-              <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-lg">
+            {currentUser && (
+              <div className="flex items-center space-x-3">
+                <img
+                  src={currentUser.profilePicture || DEFAULT_AVATAR}
+                  alt={currentUser.name}
+                  className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
+                />
+                <div className="flex-1 flex space-x-2">
+                  <input
+                    type="text"
+                    value={post.newComment || ""}
+                    onChange={(e) =>
+                      setPosts(
+                        posts.map((p) =>
+                          p.id === post.id
+                            ? { ...p, newComment: e.target.value }
+                            : p
+                        )
+                      )
+                    }
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && handleAddComment(post.id)
+                    }
+                    placeholder="Write a comment..."
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                  <button
+                    onClick={() => handleAddComment(post.id)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    ));
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3">
+            {currentUser && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
                 <div className="flex items-start space-x-4">
                   <img
-                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=50&h=50&fit=crop&crop=face"
-                    alt="Your avatar"
-                    className="w-12 h-12 rounded-full object-cover"
+                    src={currentUser.profilePicture || DEFAULT_AVATAR}
+                    alt={currentUser.name}
+                    className="w-11 h-11 rounded-full object-cover ring-2 ring-gray-100"
                   />
                   <div className="flex-1">
                     <textarea
-                      value={newPost}
-                      onChange={(e) => setNewPost(e.target.value)}
-                      placeholder="What's happening in your campus life?"
-                      className="w-full p-4 border-0 resize-none focus:outline-none bg-gray-50 rounded-xl text-gray-900 placeholder-gray-500"
+                      value={newPostContent}
+                      onChange={(e) => setNewPostContent(e.target.value)}
+                      placeholder="What's on your mind?"
+                      className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm leading-relaxed"
                       rows="3"
                     />
-                    {selectedImage && (
-                      <div className="mt-4 relative">
+
+                    {previewImage && (
+                      <div className="mt-4 relative w-full max-h-60 overflow-hidden rounded-lg bg-gray-100 border border-gray-200">
                         <img
-                          src={selectedImage}
-                          alt="Selected"
-                          className="w-full max-h-64 object-cover rounded-xl"
+                          src={previewImage}
+                          alt="Preview"
+                          className="w-full h-auto object-cover object-center"
+                          style={{ maxHeight: "240px" }}
                         />
                         <button
-                          onClick={() => setSelectedImage(null)}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
+                          onClick={() => {
+                            setPreviewImage(null);
+                            setNewPostImage(null);
+                          }}
+                          className="absolute top-3 right-3 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg transition-colors duration-150"
+                          aria-label="Remove image"
                         >
-                          ×
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     )}
-                    <div className="flex justify-between items-center mt-4">
-                      <label className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 cursor-pointer">
-                        <Image size={20} />
+
+                    <div className="flex items-center justify-between mt-4">
+                      <label className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 cursor-pointer transition-colors duration-150 px-3 py-2 rounded-lg hover:bg-gray-50">
+                        <ImageIcon className="w-5 h-5" />
                         <span className="text-sm font-medium">Add Photo</span>
                         <input
                           type="file"
@@ -427,179 +620,99 @@ const Community = () => {
                           className="hidden"
                         />
                       </label>
+
                       <button
                         onClick={handleSubmitPost}
-                        className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:shadow-lg hover:shadow-blue-500/25 hover:scale-105 transition-all duration-300 flex items-center space-x-2"
+                        disabled={!newPostContent.trim() && !newPostImage}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 shadow-sm font-medium text-sm"
                       >
-                        <Send size={16} />
-                        <span>Post</span>
+                        Post
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
+            )}
 
-              <div className="space-y-6">
-                {posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="bg-white/70 backdrop-blur-lg rounded-2xl border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <img
-                            src={post.author.avatar}
-                            alt={post.author.name}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <h3 className="font-bold text-gray-900">
-                                {post.author.name}
-                              </h3>
-                              {post.author.verified && (
-                                <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                                </div>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-500">
-                              {post.author.club} • {post.timestamp}
-                            </p>
-                          </div>
-                        </div>
-                        <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                          <MoreHorizontal size={20} />
-                        </button>
-                      </div>
+            {renderContent()}
+          </div>
 
-                      <p className="text-gray-800 mb-4 leading-relaxed">
-                        {post.content}
-                      </p>
-
-                      {post.image && (
-                        <div className="mb-4 rounded-xl overflow-hidden">
-                          <img
-                            src={post.image}
-                            alt="Post content"
-                            className="w-full h-auto object-cover"
-                          />
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <div className="flex items-center space-x-6">
-                          <button
-                            onClick={() => handleLike(post.id)}
-                            className={`flex items-center space-x-2 transition-all duration-200 ${
-                              post.liked
-                                ? "text-red-500 hover:text-red-600"
-                                : "text-gray-500 hover:text-red-500"
-                            }`}
-                          >
-                            <Heart
-                              size={20}
-                              fill={post.liked ? "currentColor" : "none"}
-                            />
-                            <span className="font-medium">{post.likes}</span>
-                          </button>
-
-                          <button
-                            onClick={() => toggleComments(post.id)}
-                            className={`flex items-center space-x-2 transition-all duration-200 ${
-                              post.showComments
-                                ? "text-blue-600"
-                                : "text-gray-500 hover:text-blue-600"
-                            }`}
-                          >
-                            <MessageCircle size={20} />
-                            <span className="font-medium">
-                              {post.comments.length}
-                            </span>
-                          </button>
-
-                          <button className="flex items-center space-x-2 text-gray-500 hover:text-green-600 transition-all duration-200">
-                            <Share2 size={20} />
-                            <span className="font-medium">{post.shares}</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Comments Section */}
-                      {post.showComments && (
-                        <div className="mt-6 pt-4 border-t border-gray-100">
-                          <div className="space-y-4">
-                            {post.comments.map((comment) => (
-                              <div
-                                key={comment.id}
-                                className="flex items-start space-x-3"
-                              >
-                                <img
-                                  src={comment.author.avatar}
-                                  alt={comment.author.name}
-                                  className="w-8 h-8 rounded-full object-cover mt-1"
-                                />
-                                <div className="flex-1">
-                                  <div className="bg-gray-50 rounded-xl p-3">
-                                    <div className="flex items-baseline">
-                                      <h4 className="font-semibold text-sm">
-                                        {comment.author.name}
-                                      </h4>
-                                      <span className="text-xs text-gray-500 ml-2">
-                                        {comment.timestamp}
-                                      </span>
-                                    </div>
-                                    <p className="text-gray-700 mt-1">
-                                      {comment.content}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Add Comment Form */}
-                          <div className="mt-4 flex items-center space-x-3">
-                            <img
-                              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&crop=face"
-                              alt="Your avatar"
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                            <div className="flex-1 flex bg-gray-50 rounded-full px-4 py-2">
-                              <input
-                                type="text"
-                                value={post.newComment}
-                                onChange={(e) =>
-                                  handleCommentChange(post.id, e.target.value)
-                                }
-                                placeholder="Write a comment..."
-                                className="flex-1 bg-transparent border-0 focus:outline-none text-sm"
-                                onKeyPress={(e) =>
-                                  e.key === "Enter" && handleAddComment(post.id)
-                                }
-                              />
-                              <button
-                                onClick={() => handleAddComment(post.id)}
-                                className="text-blue-600 hover:text-blue-700"
-                              >
-                                <Send size={18} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="lg:col-span-1">
+            <OnlineUsers />
           </div>
         </div>
       </div>
 
-      <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full blur-3xl opacity-10"></div>
-      <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-br from-pink-400 to-blue-500 rounded-full blur-3xl opacity-10"></div>
+      <Lightbox
+        open={lightboxState.open}
+        close={() => setLightboxState({ open: false, slides: [] })}
+        slides={lightboxState.slides}
+      />
+
+      {shareModalState.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl border border-gray-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Share Post
+              </h3>
+              <button
+                onClick={() =>
+                  setShareModalState({ isOpen: false, post: null })
+                }
+                className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors duration-150"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex space-x-3">
+                <FacebookShareButton
+                  url={window.location.href}
+                  quote={shareModalState.post?.content}
+                  className="flex-1"
+                >
+                  <div className="flex items-center justify-center space-x-2 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150 shadow-sm">
+                    <FacebookIcon size={20} round />
+                    <span className="font-medium">Facebook</span>
+                  </div>
+                </FacebookShareButton>
+
+                <TwitterShareButton
+                  url={window.location.href}
+                  title={shareModalState.post?.content}
+                  className="flex-1"
+                >
+                  <div className="flex items-center justify-center space-x-2 p-3 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors duration-150 shadow-sm">
+                    <TwitterIcon size={20} round />
+                    <span className="font-medium">Twitter</span>
+                  </div>
+                </TwitterShareButton>
+              </div>
+
+              <LinkedinShareButton
+                url={window.location.href}
+                title={shareModalState.post?.content}
+                className="w-full"
+              >
+                <div className="flex items-center justify-center space-x-2 p-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors duration-150 shadow-sm">
+                  <LinkedinIcon size={20} round />
+                  <span className="font-medium">LinkedIn</span>
+                </div>
+              </LinkedinShareButton>
+
+              <button
+                onClick={() => copyToClipboard(window.location.href)}
+                className="w-full flex items-center justify-center space-x-2 p-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-150 border border-gray-300"
+              >
+                <LinkIcon className="w-5 h-5" />
+                <span className="font-medium">Copy Link</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

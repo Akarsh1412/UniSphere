@@ -1,260 +1,159 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, DollarSign, TrendingUp, Calendar, Clock, MapPin, UserCheck, Target, Award } from 'lucide-react';
+import { DollarSign, ArrowLeft, Calendar, Clock, MapPin, Users, UserPlus, FileText, CheckSquare, User, Mic } from 'lucide-react';
 
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  const [eventData] = useState({
-    id: 1,
-    title: 'Tech Fest 2025',
-    club: 'Computer Science Club',
-    date: 'June 25, 2025',
-    time: '10:00 AM - 6:00 PM',
-    venue: 'Main Auditorium',
-    price: 500,
-    capacity: 200,
-    registrations: 156,
-    attended: 142,
-    totalCollection: 78000,
-    budget: 150000,
-    expenses: 125000,
-    profit: 28000,
-    attendanceRate: 91.0,
-    registrationRate: 78.0,
-    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
-    status: 'Completed'
-  });
+  const [eventData, setEventData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const stats = [
-    {
-      icon: Users,
-      label: 'Total Registrations',
-      value: eventData.registrations,
-      subtext: `${eventData.registrationRate}% of capacity`,
-      color: 'blue'
-    },
-    {
-      icon: UserCheck,
-      label: 'Attendance',
-      value: eventData.attended,
-      subtext: `${eventData.attendanceRate}% attendance rate`,
-      color: 'green'
-    },
-    {
-      icon: DollarSign,
-      label: 'Total Collection',
-      value: `₹${eventData.totalCollection.toLocaleString()}`,
-      subtext: 'From registrations',
-      color: 'purple'
-    },
-    {
-      icon: TrendingUp,
-      label: 'Net Profit',
-      value: `₹${eventData.profit.toLocaleString()}`,
-      subtext: 'After expenses',
-      color: 'emerald'
-    }
-  ];
-
-  const financialData = [
-    { label: 'Registration Revenue', amount: eventData.totalCollection, type: 'income' },
-    { label: 'Total Budget', amount: eventData.budget, type: 'budget' },
-    { label: 'Total Expenses', amount: eventData.expenses, type: 'expense' },
-    { label: 'Net Profit/Loss', amount: eventData.profit, type: eventData.profit >= 0 ? 'profit' : 'loss' }
-  ];
-
-  const getColorClasses = (color) => {
-    const colors = {
-      blue: 'bg-blue-50 text-blue-600 border-blue-200',
-      green: 'bg-green-50 text-green-600 border-green-200',
-      purple: 'bg-purple-50 text-purple-600 border-purple-200',
-      emerald: 'bg-emerald-50 text-emerald-600 border-emerald-200'
+  useEffect(() => {
+    const fetchEvent = async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        const response = await fetch(`http://localhost:5000/api/events/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch event details');
+        const data = await response.json();
+        setEventData(data.event || data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     };
-    return colors[color] || colors.blue;
-  };
+    fetchEvent();
+  }, [id]);
 
-  const getFinancialColor = (type) => {
-    switch (type) {
-      case 'income':
-        return 'text-green-600';
-      case 'expense':
-        return 'text-red-600';
-      case 'profit':
-        return 'text-emerald-600';
-      case 'loss':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
+  const parseJsonField = (field) => {
+    if (!field) return [];
+    try {
+      if (typeof field === 'string') return JSON.parse(field);
+      return Array.isArray(field) ? field : [];
+    } catch {
+      return [];
     }
   };
+
+  const DetailItem = ({ icon: Icon, label, value }) => (
+    <div className="flex items-start">
+      <Icon className="w-5 h-5 text-blue-500 mt-1 flex-shrink-0" />
+      <div className="ml-3">
+        <p className="text-sm font-semibold text-gray-500">{label}</p>
+        <p className="text-base text-gray-900">{value}</p>
+      </div>
+    </div>
+  );
+
+  const ListSection = ({ title, data, icon: Icon }) => (
+    <div>
+      <h3 className="flex items-center text-xl font-bold text-gray-800 mb-3">
+        <Icon size={20} className="mr-2 text-blue-500" />
+        {title}
+      </h3>
+      {data.length > 0 ? (
+        <ul className="space-y-2">
+          {data.map((item, idx) => (
+            <li key={idx} className="flex items-center text-gray-700">
+              <span className="w-4 h-4 bg-blue-200 rounded-full mr-3"></span>
+              {typeof item === 'string' ? item : Object.values(item).join(' - ')}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500">None provided.</p>
+      )}
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-gray-700">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-red-700">{error}</p>
+      </div>
+    );
+  }
+
+  if (!eventData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-gray-700">Event not found.</p>
+      </div>
+    );
+  }
+
+  const guests = parseJsonField(eventData.guests);
+  const coordinators = parseJsonField(eventData.coordinators);
+  const schedule = parseJsonField(eventData.schedule);
+  const requirements = parseJsonField(eventData.requirements);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="p-8">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => navigate('/list')}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">{eventData.title}</h1>
-                  <p className="text-gray-600">{eventData.club}</p>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
-                {eventData.status}
-              </span>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 py-12">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <button
+          onClick={() => navigate('/list')}
+          className="flex items-center text-gray-600 hover:text-blue-600 mb-6 group"
+        >
+          <ArrowLeft size={20} className="mr-2 group-hover:-translate-x-1 transition-transform" />
+          Back to Events List
+        </button>
 
-            <div className="grid lg:grid-cols-3 gap-8 mb-8">
-              <div className="lg:col-span-2">
-                <div className="aspect-video rounded-lg overflow-hidden mb-6">
-                  <img 
-                    src={eventData.image} 
-                    alt={eventData.title}
-                    className="w-full h-full object-cover"
-                  />
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-8 md:p-12">
+            <div className="flex flex-col lg:flex-row gap-12">
+              <div className="lg:w-2/3">
+                <div className="mb-8">
+                  <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2">{eventData.title}</h1>
+                  <p className="text-lg text-gray-500">Club ID: {eventData.club_id}</p>
                 </div>
-                
-                <div className="grid md:grid-cols-3 gap-4 mb-6">
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Calendar size={18} />
-                    <span>{eventData.date}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Clock size={18} />
-                    <span>{eventData.time}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <MapPin size={18} />
-                    <span>{eventData.venue}</span>
-                  </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8 text-sm">
+                  <DetailItem icon={Calendar} label="Date" value={eventData.date} />
+                  <DetailItem icon={Clock} label="Start Time" value={eventData.time_start} />
+                  <DetailItem icon={Clock} label="End Time" value={eventData.time_end || '-'} />
+                  <DetailItem icon={MapPin} label="Venue" value={eventData.venue} />
+                  <DetailItem icon={Users} label="Capacity" value={eventData.capacity} />
+                  <DetailItem icon={UserPlus} label="Volunteers" value={eventData.volunteers_needed} />
+                  <DetailItem icon={DollarSign} label="Price" value={`₹${eventData.price}`} />
                 </div>
-              </div>
-
-              <div className="space-y-6">
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Capacity</span>
-                      <span className="font-medium">{eventData.capacity}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Price</span>
-                      <span className="font-medium">₹{eventData.price}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Registration Rate</span>
-                      <span className="font-medium">{eventData.registrationRate}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Attendance Rate</span>
-                      <span className="font-medium text-green-600">{eventData.attendanceRate}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {stats.map((stat, index) => (
-                <div key={index} className={`border rounded-lg p-6 ${getColorClasses(stat.color)}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <stat.icon size={24} />
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">{stat.value}</div>
-                      <div className="text-xs opacity-75">{stat.subtext}</div>
-                    </div>
-                  </div>
-                  <div className="text-sm font-medium">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-8">
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center space-x-2">
-                  <DollarSign size={20} />
-                  <span>Financial Overview</span>
-                </h3>
-                <div className="space-y-4">
-                  {financialData.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center py-3 border-b border-gray-200 last:border-b-0">
-                      <span className="text-gray-600">{item.label}</span>
-                      <span className={`font-bold text-lg ${getFinancialColor(item.type)}`}>
-                        ₹{Math.abs(item.amount).toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-6 p-4 bg-white rounded-lg border">
-                  <div className="text-sm text-gray-600 mb-2">Budget Utilization</div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-blue-600 h-3 rounded-full" 
-                      style={{ width: `${(eventData.expenses / eventData.budget) * 100}%` }}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {Math.round((eventData.expenses / eventData.budget) * 100)}% of budget used
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center space-x-2">
-                  <Target size={20} />
-                  <span>Performance Metrics</span>
-                </h3>
-                
-                <div className="space-y-6">
+                <div className="space-y-8">
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-600">Registration Target</span>
-                      <span className="font-medium">{eventData.registrations}/{eventData.capacity}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
-                        className="bg-blue-600 h-3 rounded-full" 
-                        style={{ width: `${(eventData.registrations / eventData.capacity) * 100}%` }}
-                      ></div>
-                    </div>
+                    <h3 className="flex items-center text-xl font-bold text-gray-800 mb-3">
+                      <FileText size={20} className="mr-2 text-blue-500" />
+                      Description
+                    </h3>
+                    <p className="text-gray-700 leading-relaxed text-justify">{eventData.description || 'No description provided.'}</p>
                   </div>
+                  <div className="space-y-6">
+                    <ListSection title="Schedule" data={schedule} icon={Clock} />
+                    <ListSection title="Requirements" data={requirements} icon={CheckSquare} />
+                    <ListSection title="Guests" data={guests} icon={Mic} />
+                    <ListSection title="Coordinators" data={coordinators} icon={User} />
+                  </div>
+                </div>
+              </div>
 
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-600">Attendance Rate</span>
-                      <span className="font-medium">{eventData.attended}/{eventData.registrations}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
-                        className="bg-green-600 h-3 rounded-full" 
-                        style={{ width: `${(eventData.attended / eventData.registrations) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-lg p-4 border">
-                    <div className="flex items-center space-x-2 text-green-600 mb-2">
-                      <Award size={18} />
-                      <span className="font-medium">Event Success Score</span>
-                    </div>
-                    <div className="text-2xl font-bold text-green-600">
-                      {Math.round((eventData.attendanceRate + eventData.registrationRate) / 2)}%
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Based on registration and attendance rates
-                    </div>
-                  </div>
+              <div className="lg:w-1/3">
+                <div className="w-full bg-gray-100 rounded-lg p-2 flex items-center justify-center max-h-[70vh]">
+                  {eventData.image ? (
+                    <img
+                      src={eventData.image}
+                      alt={eventData.title}
+                      className="w-full h-full object-contain rounded-md"
+                    />
+                  ) : (
+                    <div className="text-gray-400">No Image</div>
+                  )}
                 </div>
               </div>
             </div>

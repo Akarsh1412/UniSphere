@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    code: '',
+    admin_id: '',
     password: ''
   });
   
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [generalError, setGeneralError] = useState('');
+
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -22,19 +25,20 @@ const Login = () => {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+    if (generalError) setGeneralError('');
   };
 
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.code.trim()) {
-      newErrors.code = 'Email or registration number is required';
+    if (!formData.admin_id.trim()) {
+      newErrors.admin_id = 'Admin ID is required';
     }
     
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 4) {
+      newErrors.password = 'Password must be at least 4 characters';
     }
     
     setErrors(newErrors);
@@ -42,21 +46,55 @@ const Login = () => {
   };
 
   const handleFormSubmit = (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      setIsLoading(true);
-      console.log('Login Form submitted:', formData);
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
-        // Handle login logic
-      }, 1500);
-    }
-  };
+  e.preventDefault();
+  setGeneralError('');
+
+  if (validateForm()) {
+    setIsLoading(true);
+
+    // Make API call to login endpoint
+    fetch('http://localhost:5000/api/auth/admin-login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        admin_id: formData.admin_id,
+        password: formData.password
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      setIsLoading(false);
+      if (data.success) {
+        // Store authentication token
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('isAdminAuthenticated', 'true');
+        navigate('/');
+      } else {
+        setGeneralError(data.message || 'Login failed. Please try again.');
+      }
+    })
+    .catch(error => {
+      setIsLoading(false);
+      setGeneralError('An error occurred. Please try again.');
+    });
+  }
+};
 
   useEffect(() => {
+    // Check if already authenticated
+    if (localStorage.getItem('isAdminAuthenticated') === 'true') {
+      navigate('/');
+    }
+    
     window.scrollTo(0, 0);
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 px-4">
@@ -67,19 +105,25 @@ const Login = () => {
           </h2> 
         </div>
 
+        {generalError && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+            <p className="text-red-700 font-medium">{generalError}</p>
+          </div>
+        )}
+
         <form className="space-y-5" onSubmit={handleFormSubmit}>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Enter Admin Code</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Enter Admin ID</label>
             <input
               type="text"
-              placeholder="Code"
-              name='code'
-              value={formData.code}
+              placeholder="Admin Id"
+              name='admin_id'
+              value={formData.admin_id}
               onChange={handleInputChange}
-              className={`mt-1 w-full px-4 py-3 border ${errors.code ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/60 backdrop-blur-sm shadow-sm`}
+              className={`mt-1 w-full px-4 py-3 border ${errors.admin_id ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/60 backdrop-blur-sm shadow-sm`}
               required
             />
-            {errors.code && <p className="mt-1 text-red-500 text-sm">{errors.code}</p>}
+            {errors.admin_id && <p className="mt-1 text-red-500 text-sm">{errors.admin_id}</p>}
           </div>
 
           <div>

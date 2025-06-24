@@ -1,130 +1,268 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Calendar, Clock, MapPin, Users, UserPlus, ArrowLeft, Star, Share2, CreditCard } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  UserPlus,
+  ArrowLeft,
+  Star,
+  Share2,
+  CreditCard,
+} from "lucide-react";
 import Card from "../components/Cards";
+import Toast from "../components/Toast";
+import axios from "axios";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import EventPaymentForm from "../components/EventPaymentForm";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISH_KEY);
 
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedRegistration, setSelectedRegistration] = useState("student");
-  const [paymentMethod, setPaymentMethod] = useState("stripe");
-
-  const event = {
-    id: parseInt(id),
-    title: "Tech Fest 2025",
-    club: "Computer Science Club",
-    date: "June 25, 2025",
-    time: "10:00 AM - 6:00 PM",
-    venue: "Main Auditorium, Block A",
-    price: 299,
-    volunteersNeeded: 15,
-    registrations: 234,
-    capacity: 500,
-    image:
-      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=600&fit=crop",
-    description:
-      "Join the biggest tech festival of the year featuring competitions, workshops, and networking opportunities. This event brings together students, professionals, and industry leaders to celebrate innovation and technology. Experience hands-on workshops, exciting competitions, and inspiring keynote sessions.",
-    guests: [
-      {
-        name: "Dr. Sarah Chen",
-        role: "CTO, TechCorp",
-        image:
-          "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop",
-        bio: "Leading AI researcher and entrepreneur",
-      },
-      {
-        name: "Mike Johnson",
-        role: "Senior Developer, Google",
-        image:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
-        bio: "Expert in cloud computing and scalable systems",
-      },
-      {
-        name: "Lisa Rodriguez",
-        role: "Product Manager, Microsoft",
-        image:
-          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-        bio: "Specializes in user experience and product strategy",
-      },
-    ],
-    coordinators: [
-      {
-        name: "Alex Kumar",
-        role: "Event Head",
-        phone: "+91 9876543210",
-        email: "alex.kumar@university.edu",
-        image:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
-      },
-      {
-        name: "Priya Sharma",
-        role: "Technical Lead",
-        phone: "+91 9876543211",
-        email: "priya.sharma@university.edu",
-        image:
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop",
-      },
-    ],
-    schedule: [
-      { time: "10:00 AM", activity: "Registration & Welcome" },
-      { time: "11:00 AM", activity: "Opening Ceremony" },
-      { time: "12:00 PM", activity: "Keynote: Future of AI" },
-      { time: "1:00 PM", activity: "Lunch Break" },
-      { time: "2:00 PM", activity: "Technical Workshops" },
-      { time: "4:00 PM", activity: "Coding Competition" },
-      { time: "5:30 PM", activity: "Networking Session" },
-      { time: "6:00 PM", activity: "Closing Ceremony" },
-    ],
-    requirements: [
-      "Valid student ID card",
-      "Laptop for workshop sessions",
-      "Notebook and pen",
-      "Comfortable clothing",
-    ],
-  };
-
-  const handleRegistration = () => {
-    if (selectedRegistration === "volunteer") {
-      alert(
-        "Volunteer registration submitted! You will receive confirmation via email."
-      );
-      return;
-    }
-
-    const amount =
-      selectedRegistration === "student" ? event.price : event.price * 1.5;
-
-    if (paymentMethod === "stripe") {
-      window.open(
-        `https://checkout.stripe.com/pay?amount=${
-          amount * 100
-        }&currency=inr&event=${event.id}`,
-        "_blank"
-      );
-    } else if (paymentMethod === "payu") {
-      window.open(
-        `https://secure.payu.in/checkout?amount=${amount}&event=${event.id}`,
-        "_blank"
-      );
-    }
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: event.title,
-        text: event.description,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert("Event link copied to clipboard!");
-    }
-  };
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showStripeForm, setShowStripeForm] = useState(false);
+  const [clientSecret, setClientSecret] = useState(null);
+  
+  // Toast states
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    fetchEvent();
   }, [id]);
+
+  // Toast helper functions
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast({ show: false, message: '', type: 'success' });
+  };
+
+  const fetchEvent = async () => {
+    try {
+      setLoading(true);
+      const API_URL = import.meta.env.VITE_API_BASE_URL;
+      const response = await axios.get(`${API_URL}/api/events/${id}`);
+      setEvent(response.data.event);
+      setError(null);
+    } catch (error) {
+      setError("Failed to load event details. Please try again.");
+      showToast("Failed to load event details. Please try again.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const formatTime = (timeString) => {
+    const [hours, minutes] = timeString.split(":");
+    const date = new Date();
+    date.setHours(parseInt(hours), parseInt(minutes));
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const parseJSONArray = (jsonString, fallback = []) => {
+    try {
+      return JSON.parse(jsonString);
+    } catch {
+      return fallback;
+    }
+  };
+
+  const handleRegistration = async () => {
+    if (!event) return;
+
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+    if (selectedRegistration === "volunteer") {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          showToast("You must be logged in to register for events", "error");
+          navigate("/login");
+          return;
+        }
+        await axios.post(
+          `${API_URL}/api/events/${event.id}/register`,
+          { registrationType: selectedRegistration, paymentMethod: "free" },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        showToast("Volunteer registration submitted! You will receive confirmation via email.", "success");
+        fetchEvent();
+      } catch (err) {
+        showToast(
+          "Registration failed. " + (err.response?.data?.message || err.message),
+          "error"
+        );
+      }
+      return;
+    }
+
+    const isPaid = parseFloat(event.price) > 0;
+    if (isPaid) {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          showToast("You must be logged in to register for events", "error");
+          navigate("/login");
+          return;
+        }
+        const intentRes = await axios.post(
+          `${API_URL}/api/events/${event.id}/create-payment-intent`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setClientSecret(intentRes.data.clientSecret);
+        setShowStripeForm(true);
+        showToast("Payment form loaded successfully", "info");
+      } catch (err) {
+        showToast(
+          "Payment initiation failed. " + (err.response?.data?.message || err.message),
+          "error"
+        );
+      }
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        showToast("You must be logged in to register for events", "error");
+        navigate("/login");
+        return;
+      }
+      await axios.post(
+        `${API_URL}/api/events/${event.id}/register`,
+        { registrationType: selectedRegistration, paymentMethod: "stripe" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      showToast("Registration successful!", "success");
+      fetchEvent();
+    } catch (err) {
+      showToast(
+        "Registration failed. " + (err.response?.data?.message || err.message),
+        "error"
+      );
+    }
+  };
+
+  const handlePaymentSuccess = async (paymentIntentId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const API_URL = import.meta.env.VITE_API_BASE_URL;
+      await axios.post(
+        `${API_URL}/api/events/confirm-payment`,
+        {
+          paymentIntentId: paymentIntentId,
+          registrationType: selectedRegistration,
+          paymentMethod: "stripe",
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setShowStripeForm(false);
+      setClientSecret(null);
+      showToast("Payment successful! You are registered for the event.", "success");
+      fetchEvent();
+    } catch (err) {
+      showToast(
+        "Payment confirmation failed. " + (err.response?.data?.message || err.message),
+        "error"
+      );
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: event.title,
+          text: event.description,
+          url: window.location.href,
+        });
+        showToast("Event shared successfully!", "success");
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        showToast("Event link copied to clipboard!", "success");
+      }
+    } catch (err) {
+      showToast("Failed to share event", "error");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading event details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => navigate("/events")}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Back to Events
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Event not found</p>
+          <button
+            onClick={() => navigate("/events")}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Back to Events
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const guests = parseJSONArray(event.guests);
+  const coordinators = parseJSONArray(event.coordinators);
+  const schedule = parseJSONArray(event.schedule);
+  const requirements = parseJSONArray(event.requirements);
+
+  const registrationsCount = parseInt(event.registrations_count) || 0;
+  const capacity = event.capacity || 0;
+  const volunteersCount = parseInt(event.volunteers_count) || 0;
+  const volunteersNeeded = event.volunteers_needed || 0;
+  const volunteersRemaining = Math.max(0, volunteersNeeded - volunteersCount);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -156,7 +294,7 @@ const EventDetail = () => {
                       {event.title}
                     </h1>
                     <p className="text-lg text-blue-600 font-semibold">
-                      {event.club}
+                      {event.club_name}
                     </p>
                   </div>
                   <button
@@ -171,11 +309,14 @@ const EventDetail = () => {
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3 text-gray-600">
                       <Calendar size={20} className="text-blue-600" />
-                      <span>{event.date}</span>
+                      <span>{formatDate(event.date)}</span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-600">
                       <Clock size={20} className="text-blue-600" />
-                      <span>{event.time}</span>
+                      <span>
+                        {formatTime(event.time_start)} -{" "}
+                        {formatTime(event.time_end)}
+                      </span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-600">
                       <MapPin size={20} className="text-blue-600" />
@@ -186,34 +327,60 @@ const EventDetail = () => {
                     <div className="flex items-center space-x-3 text-gray-600">
                       <Users size={20} className="text-blue-600" />
                       <span>
-                        {event.registrations} / {event.capacity} registered
+                        {registrationsCount} / {capacity} registered
                       </span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-600">
                       <UserPlus size={20} className="text-green-600" />
-                      <span>{event.volunteersNeeded} volunteers needed</span>
+                      <span>
+                        {volunteersCount} / {volunteersNeeded} volunteers registered
+                      </span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-600">
                       <Star size={20} className="text-yellow-600" />
-                      <span>4.8/5 rating (124 reviews)</span>
+                      <span>New Event</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mb-6">
+                {/* Event Registration Progress Bar */}
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Event Registration</span>
+                    <span>{Math.max(0, capacity - registrationsCount)} spots remaining</span>
+                  </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-300"
                       style={{
                         width: `${
-                          (event.registrations / event.capacity) * 100
+                          capacity > 0
+                            ? (registrationsCount / capacity) * 100
+                            : 0
                         }%`,
                       }}
                     ></div>
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">
-                    {event.capacity - event.registrations} spots remaining
-                  </p>
+                </div>
+
+                {/* Volunteer Registration Progress Bar */}
+                <div className="mb-6">
+                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Volunteer Registration</span>
+                    <span>{volunteersRemaining} volunteer spots remaining</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${
+                          volunteersNeeded > 0
+                            ? (volunteersCount / volunteersNeeded) * 100
+                            : 0
+                        }%`,
+                      }}
+                    ></div>
+                  </div>
                 </div>
 
                 <div>
@@ -227,80 +394,74 @@ const EventDetail = () => {
               </div>
             </Card>
 
-            <Card className="p-8">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-                Event Schedule
-              </h3>
-              <div className="space-y-4">
-                {event.schedule.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
-                  >
-                    <div className="text-blue-600 font-semibold min-w-[80px]">
-                      {item.time}
+            {schedule.length > 0 && (
+              <Card className="p-8">
+                <h3 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Event Schedule
+                </h3>
+                <div className="space-y-4">
+                  {schedule.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
+                    >
+                      <div className="text-gray-800">{item}</div>
                     </div>
-                    <div className="text-gray-800">{item.activity}</div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+                  ))}
+                </div>
+              </Card>
+            )}
 
-            <Card className="p-8">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-                Featured Guests
-              </h3>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {event.guests.map((guest, index) => (
-                  <div key={index} className="text-center">
-                    <img
-                      src={guest.image}
-                      alt={guest.name}
-                      className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-                    />
-                    <h4 className="font-semibold text-gray-900">
-                      {guest.name}
-                    </h4>
-                    <p className="text-blue-600 text-sm mb-2">{guest.role}</p>
-                    <p className="text-gray-600 text-sm">{guest.bio}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <Card className="p-8">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-                Event Coordinators
-              </h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                {event.coordinators.map((coordinator, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
-                  >
-                    <img
-                      src={coordinator.image}
-                      alt={coordinator.name}
-                      className="w-16 h-16 rounded-full object-cover"
-                    />
-                    <div>
+            {guests.length > 0 && (
+              <Card className="p-8">
+                <h3 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Featured Guests
+                </h3>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {guests.map((guest, index) => (
+                    <div key={index} className="text-center">
+                      <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-gray-200 flex items-center justify-center">
+                        <Users size={32} className="text-gray-400" />
+                      </div>
                       <h4 className="font-semibold text-gray-900">
-                        {coordinator.name}
+                        {guest}
                       </h4>
-                      <p className="text-blue-600 text-sm">
-                        {coordinator.role}
-                      </p>
-                      <p className="text-gray-600 text-sm">
-                        {coordinator.phone}
-                      </p>
-                      <p className="text-gray-600 text-sm">
-                        {coordinator.email}
+                      <p className="text-blue-600 text-sm mb-2">
+                        Guest Speaker
                       </p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {coordinators.length > 0 && (
+              <Card className="p-8">
+                <h3 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Event Coordinators
+                </h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {coordinators.map((coordinator, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                        <Users size={24} className="text-gray-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">
+                          {coordinator}
+                        </h4>
+                        <p className="text-blue-600 text-sm">
+                          Event Coordinator
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -308,7 +469,6 @@ const EventDetail = () => {
               <h3 className="text-xl font-semibold text-gray-900 mb-6">
                 Register for Event
               </h3>
-
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -327,22 +487,7 @@ const EventDetail = () => {
                         className="text-blue-600 focus:ring-blue-500"
                       />
                       <span className="ml-2 text-sm">
-                        Student - ₹{event.price}
-                      </span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="registration"
-                        value="general"
-                        checked={selectedRegistration === "general"}
-                        onChange={(e) =>
-                          setSelectedRegistration(e.target.value)
-                        }
-                        className="text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm">
-                        General - ₹{Math.round(event.price * 1.5)}
+                        Student - ₹{parseFloat(event.price)}
                       </span>
                     </label>
                     <label className="flex items-center">
@@ -355,14 +500,14 @@ const EventDetail = () => {
                           setSelectedRegistration(e.target.value)
                         }
                         className="text-green-600 focus:ring-green-500"
+                        disabled={volunteersRemaining === 0}
                       />
-                      <span className="ml-2 text-sm text-green-600">
-                        Volunteer - Free
+                      <span className={`ml-2 text-sm ${volunteersRemaining === 0 ? 'text-gray-400' : 'text-green-600'}`}>
+                        Volunteer - Free {volunteersRemaining === 0 && '(Full)'}
                       </span>
                     </label>
                   </div>
                 </div>
-
                 {selectedRegistration !== "volunteer" && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -374,8 +519,8 @@ const EventDetail = () => {
                           type="radio"
                           name="payment"
                           value="stripe"
-                          checked={paymentMethod === "stripe"}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
+                          checked
+                          readOnly
                           className="text-blue-600 focus:ring-blue-500"
                         />
                         <span className="ml-2 text-sm flex items-center">
@@ -383,52 +528,69 @@ const EventDetail = () => {
                           Stripe
                         </span>
                       </label>
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="payment"
-                          value="payu"
-                          checked={paymentMethod === "payu"}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                          className="text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm flex items-center">
-                          <CreditCard size={16} className="mr-1" />
-                          PayU
-                        </span>
-                      </label>
                     </div>
                   </div>
                 )}
               </div>
 
-              <button
-                onClick={handleRegistration}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                {selectedRegistration === "volunteer"
-                  ? "Register as Volunteer"
-                  : `Proceed to Pay ₹${
-                      selectedRegistration === "student"
-                        ? event.price
-                        : Math.round(event.price * 1.5)
-                    }`}
-              </button>
+              {!showStripeForm && (
+                <button
+                  onClick={handleRegistration}
+                  disabled={selectedRegistration === "volunteer" && volunteersRemaining === 0}
+                  className={`w-full py-3 rounded-lg text-lg font-semibold transition-colors ${
+                    selectedRegistration === "volunteer" && volunteersRemaining === 0
+                      ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
+                >
+                  {selectedRegistration === "volunteer"
+                    ? volunteersRemaining === 0
+                      ? "Volunteer Spots Full"
+                      : "Register as Volunteer"
+                    : `Proceed to Pay ₹${
+                        selectedRegistration === "student"
+                          ? parseFloat(event.price)
+                          : Math.round(parseFloat(event.price) * 1.5)
+                      }`}
+                </button>
+              )}
+
+              {showStripeForm && clientSecret && (
+                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <EventPaymentForm onPaymentSuccess={handlePaymentSuccess} />
+                </Elements>
+              )}
+
+              {showStripeForm && !clientSecret && (
+                <div className="text-center py-4 text-gray-500">
+                  Loading payment form...
+                </div>
+              )}
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                What to Bring
-              </h3>
-              <ul className="list-disc list-inside text-gray-600 space-y-2">
-                {event.requirements.map((req, index) => (
-                  <li key={index}>{req}</li>
-                ))}
-              </ul>
-            </Card>
+            {requirements.length > 0 && (
+              <Card className="p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                  What to Bring
+                </h3>
+                <ul className="list-disc list-inside text-gray-600 space-y-2">
+                  {requirements.map((req, index) => (
+                    <li key={index}>{req}</li>
+                  ))}
+                </ul>
+              </Card>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Toast Component */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.show}
+        onClose={hideToast}
+      />
     </div>
   );
 };

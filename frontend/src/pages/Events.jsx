@@ -2,166 +2,64 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, MapPin, Users, Clock, Filter } from "lucide-react";
 import Card from "../components/Cards";
+import axios from "axios";
 
 const Events = () => {
   const navigate = useNavigate();
   const [selectedClub, setSelectedClub] = useState("All");
+  const [events, setEvents] = useState([]);
+  const [clubs, setClubs] = useState(["All"]);
 
-  const clubs = [
-    "All",
-    "Computer Science Club",
-    "Arts & Culture Society",
-    "Athletic Club",
-    "Entrepreneurship Club",
-    "Photography Club",
-    "Robotics Club",
-    "Debate Society",
-    "Music Club",
-  ];
+  useEffect(() => {
+    window.scrollTo(0, 0);
 
-  const events = [
-    {
-      id: 1,
-      title: "Tech Fest 2025",
-      club: "Computer Science Club",
-      date: "June 25, 2025",
-      time: "10:00 AM - 6:00 PM",
-      venue: "Main Auditorium",
-      price: 299,
-      volunteersNeeded: 15,
-      registrations: 234,
-      image:
-        "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop",
-      description:
-        "Join the biggest tech festival of the year featuring competitions, workshops, and networking.",
-      featured: true,
-    },
-    {
-      id: 2,
-      title: "Cultural Night",
-      club: "Arts & Culture Society",
-      date: "June 28, 2025",
-      time: "7:00 PM - 11:00 PM",
-      venue: "Open Air Theatre",
-      price: 199,
-      volunteersNeeded: 10,
-      registrations: 189,
-      image:
-        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop",
-      description:
-        "Experience diverse cultures through music, dance, and art performances.",
-      featured: false,
-    },
-    {
-      id: 3,
-      title: "Sports Championship",
-      club: "Athletic Club",
-      date: "July 2, 2025",
-      time: "9:00 AM - 5:00 PM",
-      venue: "Sports Complex",
-      price: 149,
-      volunteersNeeded: 20,
-      registrations: 156,
-      image:
-        "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
-      description:
-        "Annual inter-college sports championship with multiple sporting events.",
-      featured: true,
-    },
-    {
-      id: 4,
-      title: "Innovation Summit",
-      club: "Entrepreneurship Club",
-      date: "July 5, 2025",
-      time: "2:00 PM - 8:00 PM",
-      venue: "Conference Hall",
-      price: 399,
-      volunteersNeeded: 8,
-      registrations: 98,
-      image:
-        "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=300&fit=crop",
-      description:
-        "Connect with industry leaders and showcase innovative ideas.",
-      featured: false,
-    },
-    {
-      id: 5,
-      title: "Photography Exhibition",
-      club: "Photography Club",
-      date: "July 8, 2025",
-      time: "11:00 AM - 7:00 PM",
-      venue: "Art Gallery",
-      price: 99,
-      volunteersNeeded: 5,
-      registrations: 67,
-      image:
-        "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400&h=300&fit=crop",
-      description:
-        "Showcase of stunning photography from talented student photographers.",
-      featured: false,
-    },
-    {
-      id: 6,
-      title: "Robotics Competition",
-      club: "Robotics Club",
-      date: "July 12, 2025",
-      time: "10:00 AM - 4:00 PM",
-      venue: "Engineering Lab",
-      price: 349,
-      volunteersNeeded: 12,
-      registrations: 89,
-      image:
-        "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&h=300&fit=crop",
-      description: "Build, program, and compete with autonomous robots.",
-      featured: true,
-    },
-    {
-      id: 7,
-      title: "Debate Tournament",
-      club: "Debate Society",
-      date: "July 15, 2025",
-      time: "1:00 PM - 9:00 PM",
-      venue: "Seminar Hall",
-      price: 79,
-      volunteersNeeded: 6,
-      registrations: 45,
-      image:
-        "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=400&h=200&fit=crop",
-      description:
-        "Annual inter-collegiate debate championship with exciting topics.",
-      featured: false,
-    },
-    {
-      id: 8,
-      title: "Music Festival",
-      club: "Music Club",
-      date: "July 18, 2025",
-      time: "6:00 PM - 12:00 AM",
-      venue: "Campus Ground",
-      price: 249,
-      volunteersNeeded: 18,
-      registrations: 234,
-      image:
-        "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop",
-      description: "Live performances by student bands and guest artists.",
-      featured: true,
-    },
-  ];
+    axios.get('http://localhost:5000/api/events')
+      .then((response) => {
+        console.log(response.data.events);
+        const eventsData = response.data.events;
+        setEvents(eventsData);
+        
+        // Extract unique club names for filter dropdown
+        const uniqueClubs = ["All", ...new Set(eventsData.map(event => event.club_name))];
+        setClubs(uniqueClubs);
+      })
+      .catch((error) => {
+        console.error("Error fetching events:", error);
+      });
+  }, []);
+
+  // Helper function to format date
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Helper function to format time
+  const formatTime = (timeString) => {
+    const [hours, minutes] = timeString.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours), parseInt(minutes));
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   const filteredEvents =
     selectedClub === "All"
       ? events
-      : events.filter((event) => event.club === selectedClub);
+      : events.filter((event) => event.club_name === selectedClub);
 
   const featuredEvents = events.filter((event) => event.featured);
 
   const handleViewEvent = (eventId) => {
     navigate(`/events/${eventId}`);
   };
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -213,17 +111,17 @@ const Events = () => {
                         {event.title}
                       </h3>
                       <p className="text-sm text-blue-600 font-medium mb-2">
-                        {event.club}
+                        {event.club_name}
                       </p>
 
                       <div className="space-y-1 text-sm text-gray-500">
                         <div className="flex items-center space-x-2">
                           <Calendar size={14} />
-                          <span>{event.date}</span>
+                          <span>{formatDate(event.date)}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Clock size={14} />
-                          <span>{event.time}</span>
+                          <span>{formatTime(event.time_start)} - {formatTime(event.time_end)}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <MapPin size={14} />
@@ -231,7 +129,7 @@ const Events = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <Users size={14} />
-                          <span>{event.registrations} registered</span>
+                          <span>{event.registrations_count || 0} registered</span>
                         </div>
                       </div>
                     </div>
@@ -285,7 +183,7 @@ const Events = () => {
                   <div className="absolute top-3 right-3 bg-black/50 text-white px-3 py-1 rounded-full text-xs font-medium">
                     ₹{event.price}
                   </div>
-                  {event.volunteersNeeded > 0 && (
+                  {event.volunteers_needed > 0 && (
                     <div className="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium">
                       Volunteers Needed
                     </div>
@@ -297,17 +195,17 @@ const Events = () => {
                       {event.title}
                     </h3>
                     <p className="text-sm text-blue-600 font-medium mb-2">
-                      {event.club}
+                      {event.club_name}
                     </p>
 
                     <div className="space-y-1 text-sm text-gray-500">
                       <div className="flex items-center space-x-2">
                         <Calendar size={14} />
-                        <span>{event.date}</span>
+                        <span>{formatDate(event.date)}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Clock size={14} />
-                        <span>{event.time}</span>
+                        <span>{formatTime(event.time_start)} - {formatTime(event.time_end)}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <MapPin size={14} />
@@ -315,7 +213,7 @@ const Events = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Users size={14} />
-                        <span>{event.registrations} registered</span>
+                        <span>{event.registrations_count || 0} registered</span>
                       </div>
                     </div>
                   </div>

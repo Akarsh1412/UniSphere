@@ -1,493 +1,334 @@
 import { useState } from 'react';
-import { Calendar, Clock, MapPin, Users, UserPlus, Save, X, Plus, Minus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar, Clock, MapPin, Users, UserPlus, Save, X, Plus, Image as ImageIcon, FileText } from 'lucide-react';
 
 const Add = () => {
-  const [formData, setFormData] = useState({
-    title: '',
-    club: '',
-    date: '',
-    time: '',
-    venue: '',
-    price: '',
-    totalBudget: '',
-    volunteersNeeded: '',
-    capacity: '',
-    image: null,
-    description: '',
-    guests: [{ name: '', role: '', image: '', bio: '' }],
-    coordinators: [{ name: '', role: '', phone: '', email: '', image: '' }],
-    schedule: [{ time: '', activity: '' }],
-    requirements: ['']
-  });
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    club_id: '',
+    date: '',
+    time_start: '',
+    time_end: '',
+    venue: '',
+    price: '0',
+    capacity: '',
+    volunteers_needed: '0',
+    image: null,
+    guests: '',
+    coordinators: '',
+    schedule: '',
+    requirements: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    setFormData(prev => ({
-      ...prev,
-      image: file
-    }));
-  };
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    setFormData(prev => ({ ...prev, image: file }));
+  };
 
-  const handleArrayChange = (section, index, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: prev[section].map((item, i) => 
-        i === index ? { ...item, [field]: value } : item
-      )
-    }));
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
 
-  const addArrayItem = (section, template) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: [...prev[section], template]
-    }));
-  };
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      setError('Authentication error. Please log in again.');
+      setIsSubmitting(false);
+      return;
+    }
 
-  const removeArrayItem = (section, index) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: prev[section].filter((_, i) => i !== index)
-    }));
-  };
+    const apiFormData = new FormData();
+    for (const key in formData) {
+      if (formData[key] !== null && formData[key] !== '') {
+        if (key === 'guests' || key === 'coordinators' || key === 'schedule' || key === 'requirements') {
+          const arr = formData[key]
+            .split(',')
+            .map(item => item.trim())
+            .filter(item => item);
+          apiFormData.append(key, JSON.stringify(arr));
+        } else if (key === 'image') {
+          apiFormData.append(key, formData[key]);
+        } else {
+          apiFormData.append(key, formData[key]);
+        }
+      }
+    }
+    apiFormData.set('price', formData.price === '' ? '0' : formData.price);
+    apiFormData.set('volunteers_needed', formData.volunteers_needed === '' ? '0' : formData.volunteers_needed);
 
-  const handleRequirementChange = (index, value) => {
-    setFormData(prev => ({
-      ...prev,
-      requirements: prev.requirements.map((req, i) => i === index ? value : req)
-    }));
-  };
+    try {
+      const response = await fetch('http://localhost:5000/api/events', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: apiFormData,
+      });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    const eventData = {
-      ...formData,
-      id: Date.now(),
-      price: parseInt(formData.price),
-      totalBudget: parseInt(formData.totalBudget),
-      volunteersNeeded: parseInt(formData.volunteersNeeded),
-      capacity: parseInt(formData.capacity),
-      registrations: 0,
-      requirements: formData.requirements.filter(req => req.trim() !== '')
-    };
+      const result = await response.json();
 
-    console.log('Event Data:', eventData);
-    alert('Event added successfully!');
-    
-    setFormData({
-      title: '',
-      club: '',
-      date: '',
-      time: '',
-      venue: '',
-      price: '',
-      totalBudget: '', // Add this
-      volunteersNeeded: '',
-      capacity: '',
-      image: null,
-      description: '',
-      guests: [{ name: '', role: '', image: '', bio: '' }],
-      coordinators: [{ name: '', role: '', phone: '', email: '', image: '' }],
-      schedule: [{ time: '', activity: '' }],
-      requirements: ['']
-    });
-  };
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to add event');
+      }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="p-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Add New Event</h1>
-            
-            <form onSubmit={handleSubmit} className="space-y-8">
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Event Title</label>
-                  <input
-                    type="text"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Club Name</label>
-                  <input
-                    type="text"
-                    name="club"
-                    value={formData.club}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-              </div>
+      alert('Event added successfully!');
+      navigate('/list');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-              <div className="grid md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Calendar size={16} className="inline mr-1" />
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Clock size={16} className="inline mr-1" />
-                    Time
-                  </label>
-                  <input
-                    type="text"
-                    name="time"
-                    value={formData.time}
-                    onChange={handleInputChange}
-                    placeholder="10:00 AM - 6:00 PM"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <MapPin size={16} className="inline mr-1" />
-                    Venue
-                  </label>
-                  <input
-                    type="text"
-                    name="venue"
-                    value={formData.venue}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-4 gap-6"> {/* Changed to 4 columns */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price (₹)</label>
-                    <input
-                      type="number"
-                      name="price"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <UserPlus size={16} className="inline mr-1" />
-                      Volunteers Needed
-                    </label>
-                    <input
-                      type="number"
-                      name="volunteersNeeded"
-                      value={formData.volunteersNeeded}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Users size={16} className="inline mr-1" />
-                      Capacity
-                    </label>
-                    <input
-                      type="number"
-                      name="capacity"
-                      value={formData.capacity}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  {/* Add Total Budget field here */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Total Budget (₹)</label>
-                    <input
-                      type="number"
-                      name="totalBudget"
-                      value={formData.totalBudget}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
+  return (
+    <div className="min-h-screen flex items-center justify-center py-10">
+      <div className="max-w-3xl w-full mx-auto p-8 bg-white rounded-2xl shadow-lg">
+        <h1 className="text-4xl font-extrabold text-gray-900 mb-10 text-center">Create New Event</h1>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-2">Event Title</label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="club_id" className="block text-sm font-semibold text-gray-700 mb-2">Club ID</label>
+              <input
+                type="number"
+                id="club_id"
+                name="club_id"
+                value={formData.club_id}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label htmlFor="date" className="block text-sm font-semibold text-gray-700 mb-2">
+                <Calendar size={16} className="inline mr-1 text-gray-500" />
+                Date
+              </label>
+              <input
+                type="date"
+                id="date"
+                name="date"
+                value={formData.date}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="time_start" className="block text-sm font-semibold text-gray-700 mb-2">
+                <Clock size={16} className="inline mr-1 text-gray-500" />
+                Start Time
+              </label>
+              <input
+                type="time"
+                id="time_start"
+                name="time_start"
+                value={formData.time_start}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="time_end" className="block text-sm font-semibold text-gray-700 mb-2">
+                <Clock size={16} className="inline mr-1 text-gray-500" />
+                End Time
+              </label>
+              <input
+                type="time"
+                id="time_end"
+                name="time_end"
+                value={formData.time_end}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="venue" className="block text-sm font-semibold text-gray-700 mb-2">
+              <MapPin size={16} className="inline mr-1 text-gray-500" />
+              Venue
+            </label>
+            <input
+              type="text"
+              id="venue"
+              name="venue"
+              value={formData.venue}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label htmlFor="price" className="block text-sm font-semibold text-gray-700 mb-2">Price (₹)</label>
+              <input
+                type="number"
+                id="price"
+                name="price"
+                value={formData.price}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="volunteers_needed" className="block text-sm font-semibold text-gray-700 mb-2">
+                <UserPlus size={16} className="inline mr-1 text-gray-500" />
+                Volunteers Needed
+              </label>
+              <input
+                type="number"
+                id="volunteers_needed"
+                name="volunteers_needed"
+                value={formData.volunteers_needed}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="capacity" className="block text-sm font-semibold text-gray-700 mb-2">
+                <Users size={16} className="inline mr-1 text-gray-500" />
+                Capacity
+              </label>
+              <input
+                type="number"
+                id="capacity"
+                name="capacity"
+                value={formData.capacity}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="image-upload" className="block text-sm font-semibold text-gray-700 mb-2">Event Image</label>
+            <label htmlFor="image-upload" className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+              {formData.image ? (
+                <p className="text-gray-700 text-center">{formData.image.name}</p>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <ImageIcon size={32} className="text-gray-400 mb-2" />
+                  <span className="text-gray-600 text-sm">Upload Image</span>
                 </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Event Image</label>
-                <label htmlFor="image-upload" className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                  <Plus size={16} className="mr-2" />
-                  <span>Upload Image</span>
-                  <input
-                    id="image-upload"
-                    type="file"
-                    name="image"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="sr-only" 
-                    required
-                  />
-                </label>
-                {formData.image && (
-                  <p className="text-sm text-gray-500 mt-2">Selected file: {formData.image.name}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Featured Guests</h3>
-                  <button
-                    type="button"
-                    onClick={() => addArrayItem('guests', { name: '', role: '', image: '', bio: '' })}
-                    className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
-                  >
-                    <Plus size={16} />
-                    <span>Add Guest</span>
-                  </button>
-                </div>
-                {formData.guests.map((guest, index) => (
-                  <div key={index} className="grid md:grid-cols-2 gap-4 p-4 border border-gray-200 rounded-lg mb-4">
-                    <input
-                      type="text"
-                      placeholder="Guest Name"
-                      value={guest.name}
-                      onChange={(e) => handleArrayChange('guests', index, 'name', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Role"
-                      value={guest.role}
-                      onChange={(e) => handleArrayChange('guests', index, 'role', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <input
-                      type="url"
-                      placeholder="Image URL"
-                      value={guest.image}
-                      onChange={(e) => handleArrayChange('guests', index, 'image', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <div className="flex space-x-2">
-                      <input
-                        type="text"
-                        placeholder="Bio"
-                        value={guest.bio}
-                        onChange={(e) => handleArrayChange('guests', index, 'bio', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      {formData.guests.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayItem('guests', index)}
-                          className="p-2 text-red-600 hover:text-red-800"
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Event Coordinators</h3>
-                  <button
-                    type="button"
-                    onClick={() => addArrayItem('coordinators', { name: '', role: '', phone: '', email: '', image: '' })}
-                    className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
-                  >
-                    <Plus size={16} />
-                    <span>Add Coordinator</span>
-                  </button>
-                </div>
-                {formData.coordinators.map((coordinator, index) => (
-                  <div key={index} className="grid md:grid-cols-2 gap-4 p-4 border border-gray-200 rounded-lg mb-4">
-                    <input
-                      type="text"
-                      placeholder="Coordinator Name"
-                      value={coordinator.name}
-                      onChange={(e) => handleArrayChange('coordinators', index, 'name', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Role"
-                      value={coordinator.role}
-                      onChange={(e) => handleArrayChange('coordinators', index, 'role', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <input
-                      type="tel"
-                      placeholder="Phone"
-                      value={coordinator.phone}
-                      onChange={(e) => handleArrayChange('coordinators', index, 'phone', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      value={coordinator.email}
-                      onChange={(e) => handleArrayChange('coordinators', index, 'email', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <div className="flex space-x-2">
-                      <input
-                        type="url"
-                        placeholder="Image URL"
-                        value={coordinator.image}
-                        onChange={(e) => handleArrayChange('coordinators', index, 'image', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      {formData.coordinators.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayItem('coordinators', index)}
-                          className="p-2 text-red-600 hover:text-red-800"
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Event Schedule</h3>
-                  <button
-                    type="button"
-                    onClick={() => addArrayItem('schedule', { time: '', activity: '' })}
-                    className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
-                  >
-                    <Plus size={16} />
-                    <span>Add Schedule Item</span>
-                  </button>
-                </div>
-                {formData.schedule.map((item, index) => (
-                  <div key={index} className="flex space-x-4 mb-4">
-                    <input
-                      type="text"
-                      placeholder="Time (e.g., 10:00 AM)"
-                      value={item.time}
-                      onChange={(e) => handleArrayChange('schedule', index, 'time', e.target.value)}
-                      className="w-1/3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Activity"
-                      value={item.activity}
-                      onChange={(e) => handleArrayChange('schedule', index, 'activity', e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    {formData.schedule.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayItem('schedule', index)}
-                        className="p-2 text-red-600 hover:text-red-800"
-                      >
-                        <X size={16} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Requirements</h3>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, requirements: [...prev.requirements, ''] }))}
-                    className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
-                  >
-                    <Plus size={16} />
-                    <span>Add Requirement</span>
-                  </button>
-                </div>
-                {formData.requirements.map((requirement, index) => (
-                  <div key={index} className="flex space-x-4 mb-4">
-                    <input
-                      type="text"
-                      placeholder="Requirement"
-                      value={requirement}
-                      onChange={(e) => handleRequirementChange(index, e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    {formData.requirements.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({ 
-                          ...prev, 
-                          requirements: prev.requirements.filter((_, i) => i !== index) 
-                        }))}
-                        className="p-2 text-red-600 hover:text-red-800"
-                      >
-                        <X size={16} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end space-x-4 pt-6">
-                <button
-                  type="button"
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Save size={20} />
-                  <span>Add Event</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+              )}
+              <input
+                id="image-upload"
+                type="file"
+                name="image"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="sr-only"
+              />
+            </label>
+          </div>
+          <div>
+            <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-2">
+              <FileText size={16} className="inline mr-1 text-gray-500" />
+              Description
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              rows={4}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="guests" className="block text-sm font-semibold text-gray-700 mb-2">Guests (Comma separated)</label>
+              <input
+                type="text"
+                id="guests"
+                name="guests"
+                value={formData.guests}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Guest1, Guest2"
+              />
+            </div>
+            <div>
+              <label htmlFor="coordinators" className="block text-sm font-semibold text-gray-700 mb-2">Coordinators (Comma separated)</label>
+              <input
+                type="text"
+                id="coordinators"
+                name="coordinators"
+                value={formData.coordinators}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Coordinator1, Coordinator2"
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="schedule" className="block text-sm font-semibold text-gray-700 mb-2">Schedule (Comma separated)</label>
+            <textarea
+              id="schedule"
+              name="schedule"
+              value={formData.schedule}
+              onChange={handleInputChange}
+              rows={2}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              placeholder="10:00 AM - Registration, 11:00 AM - Opening"
+            />
+          </div>
+          <div>
+            <label htmlFor="requirements" className="block text-sm font-semibold text-gray-700 mb-2">Requirements (Comma separated)</label>
+            <textarea
+              id="requirements"
+              name="requirements"
+              value={formData.requirements}
+              onChange={handleInputChange}
+              rows={2}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Projector, Microphone"
+            />
+          </div>
+          <div className="flex justify-end space-x-3 pt-6">
+            <button
+              type="button"
+              onClick={() => navigate('/list')}
+              className="flex items-center space-x-2 px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              <X size={18} />
+              <span>Cancel</span>
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex items-center space-x-2 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              <Save size={18} />
+              <span>{isSubmitting ? 'Adding Event...' : 'Add Event'}</span>
+            </button>
+          </div>
+          {error && <div className="text-red-500 mt-4 text-center font-medium">{error}</div>}
+        </form>
+      </div>
+    </div>
+  );
 };
 
 export default Add;

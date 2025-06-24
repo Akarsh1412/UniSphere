@@ -10,17 +10,26 @@ import EventDetail from './pages/EventDetails'
 import Login from './pages/Login'
 import Announcement from './pages/Announcement'
 import Attendance from './pages/Attendance'
+import ProtectedRoute from './ProtectedRoute'
+import Clubs from './pages/Club'
+import ClubDetail from './pages/ClubDetails'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path='/' element={<App />}>
-      <Route path='' element={<Dashboard />} />
-      <Route path='list' element={<List />} /> 
-      <Route path='list/:id' element={<EventDetail />} /> 
-      <Route path='add' element={<Add />} />
-      <Route path='login' element={<Login />} />
-      <Route path="/list/:id/attendance" element={<Attendance />} />
-      <Route path='announcement' element={<Announcement />} />
+      <Route path="login" element={<Login />} />
+      
+      {/* Protected Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route index element={<Dashboard />} />
+        <Route path='list' element={<List />} />
+        <Route path='list/:id' element={<EventDetail />} />
+        <Route path='add' element={<Add />} />
+        <Route path='clubs' element={<Clubs />} />
+        <Route path='clubs/:id' element={<ClubDetail />} />
+        <Route path="/list/:id/attendance" element={<Attendance />} />
+        <Route path='announcement' element={<Announcement />} />
+      </Route>
     </Route>
   )
 )
@@ -28,5 +37,5 @@ const router = createBrowserRouter(
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <RouterProvider router={router} />
-  </StrictMode>,
+  </StrictMode>
 )

@@ -1,132 +1,70 @@
 import { useState, useEffect } from "react";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Loader } from "lucide-react";
+import axios from "axios";
 import ClubCard from "../components/ClubCard";
 
 const Clubs = () => {
+  const API_URL = import.meta.env.VITE_API_BASE_URL;
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-
-  const featuredClubs = [
-    {
-      id: 1,
-      name: "Robotics Club",
-      members: 234,
-      category: "Technology",
-      description: "Building the future through robotics and automation",
-      image:
-        "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=300&h=200&fit=crop",
-      featured: true,
-      rating: 4.8,
-      nextEvent: "Robot Competition Prep",
-    },
-    {
-      id: 2,
-      name: "Photography Club",
-      members: 189,
-      category: "Arts",
-      description: "Capturing moments and creating visual stories",
-      image:
-        "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=300&h=200&fit=crop",
-      featured: true,
-      rating: 4.6,
-      nextEvent: "Campus Photo Walk",
-    },
-    {
-      id: 3,
-      name: "Debate Society",
-      members: 156,
-      category: "Academic",
-      description: "Sharpening minds through structured discourse",
-      image:
-        "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=300&h=200&fit=crop",
-      featured: true,
-      rating: 4.7,
-      nextEvent: "Inter-University Debate",
-    },
-    {
-      id: 4,
-      name: "Music Society",
-      members: 298,
-      category: "Arts",
-      description: "Harmonizing voices and instruments in perfect unity",
-      image:
-        "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=200&fit=crop",
-      featured: false,
-      rating: 4.9,
-      nextEvent: "Annual Concert",
-    },
-    {
-      id: 5,
-      name: "Coding Club",
-      members: 412,
-      category: "Technology",
-      description: "Programming the future, one line of code at a time",
-      image:
-        "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=300&h=200&fit=crop",
-      featured: false,
-      rating: 4.5,
-      nextEvent: "Hackathon 2025",
-    },
-    {
-      id: 6,
-      name: "Environmental Club",
-      members: 167,
-      category: "Social",
-      description: "Creating a sustainable future for our planet",
-      image:
-        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&h=200&fit=crop",
-      featured: false,
-      rating: 4.4,
-      nextEvent: "Campus Clean Drive",
-    },
-    {
-      id: 7,
-      name: "Drama Club",
-      members: 143,
-      category: "Arts",
-      description: "Bringing stories to life through theatrical performance",
-      image:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop",
-      featured: false,
-      rating: 4.6,
-      nextEvent: "Shakespeare Festival",
-    },
-    {
-      id: 8,
-      name: "Sports Club",
-      members: 356,
-      category: "Sports",
-      description: "Building champions through teamwork and dedication",
-      image:
-        "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=200&fit=crop",
-      featured: true,
-      rating: 4.8,
-      nextEvent: "Inter-College Tournament",
-    },
-    {
-      id: 9,
-      name: "Literary Society",
-      members: 124,
-      category: "Academic",
-      description: "Exploring the world through words and literature",
-      image:
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=200&fit=crop",
-      featured: false,
-      rating: 4.3,
-      nextEvent: "Poetry Slam Night",
-    },
-  ];
+  const [clubs, setClubs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const categories = [
     "All",
     "Technology",
+    "Art and Culture",
+    "Sports",
     "Arts",
     "Academic",
     "Social",
-    "Sports",
   ];
 
-  const filteredClubs = featuredClubs.filter((club) => {
+  const fetchClubs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${API_URL}/api/clubs`);
+      
+      if (response.data.success) {
+        const transformedClubs = response.data.clubs.map(club => ({
+          id: club.id,
+          name: club.name,
+          members: parseInt(club.members_count) || 0,
+          category: club.category,
+          description: club.description.length > 150 
+            ? club.description.substring(0, 150) + "..." 
+            : club.description,
+          image: club.image,
+          cover_image: club.cover_image,
+          featured: club.featured,
+          rating: parseFloat(club.rating) || 0,
+          nextEvent: club.events_count > 0 ? "Upcoming Event" : "No upcoming events",
+          website: club.website,
+          instagram: club.instagram,
+          twitter: club.twitter,
+          facebook: club.facebook,
+          established: club.established,
+          admin_name: club.admin_name,
+          admin_email: club.admin_email,
+          events_count: parseInt(club.events_count) || 0
+        }));
+        
+        setClubs(transformedClubs);
+      } else {
+        setError("Failed to fetch clubs data");
+      }
+    } catch (err) {
+      setError("Error fetching clubs: " + err.message);
+      console.error("Error fetching clubs:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter clubs based on search term and category
+  const filteredClubs = clubs.filter((club) => {
     const matchesSearch =
       club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       club.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -137,7 +75,49 @@ const Clubs = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    fetchClubs();
   }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-center min-h-[400px]">
+            <Loader className="animate-spin text-blue-600 mb-4" size={48} />
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">
+              Loading clubs...
+            </h2>
+            <p className="text-gray-500">Please wait while we fetch the latest clubs</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-center min-h-[400px]">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full text-center">
+              <h2 className="text-xl font-semibold text-red-800 mb-2">
+                Error Loading Clubs
+              </h2>
+              <p className="text-red-600 mb-4">{error}</p>
+              <button
+                onClick={fetchClubs}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 pb-12">
@@ -186,6 +166,14 @@ const Clubs = () => {
                 ))}
               </select>
             </div>
+
+            {/* Refresh Button */}
+            <button
+              onClick={fetchClubs}
+              className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+            >
+              Refresh
+            </button>
           </div>
         </div>
 
@@ -217,7 +205,7 @@ const Clubs = () => {
         </div>
 
         {/* No Results */}
-        {filteredClubs.length === 0 && (
+        {filteredClubs.length === 0 && !loading && (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               <Search size={64} className="mx-auto mb-4" />
@@ -231,17 +219,20 @@ const Clubs = () => {
           </div>
         )}
 
-        {/* <div className="mt-16 text-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            Can't find what you're looking for?
-          </h2>
-          <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
-            Start your own club and bring together people who share your passion!
-          </p>
-          <button className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-            Create a Club
-          </button>
-        </div> */}
+        {/* Empty State - No clubs at all */}
+        {clubs.length === 0 && !loading && !error && (
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <Search size={64} className="mx-auto mb-4" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              No clubs available
+            </h3>
+            <p className="text-gray-500">
+              Be the first to create a club!
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
