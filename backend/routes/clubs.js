@@ -7,8 +7,12 @@ import {
   getClubCategories,
   createClub,
   createPaymentIntent,
-  confirmPayment
+  getClubRevenue,
+  getAllClubsRevenue,
+  confirmPayment,
+  getClubAttendance
 } from '../controllers/clubController.js';
+
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 import { validateId, validateClubId, validatePagination } from '../middleware/validation.js';
 import { uploadFields } from '../middleware/upload.js';
@@ -20,7 +24,7 @@ router.get('/:id', optionalAuth, validateId, getClubById);
 
 router.post('/:clubId/join', authenticateToken, validateClubId, joinClub);
 router.delete('/:clubId/leave', authenticateToken, validateClubId, leaveClub);
-
+router.get('/:clubId/attendance', authenticateToken, getClubAttendance); 
 router.post(
   '/',
   authenticateToken,
@@ -30,5 +34,7 @@ router.post(
 
 router.post('/:clubId/payment-intent', authenticateToken, createPaymentIntent);
 router.post('/confirm-payment', authenticateToken, confirmPayment);
+router.get('/:clubId/revenue', authenticateToken, getClubRevenue);
+router.get('/revenue/all', authenticateToken, getAllClubsRevenue);
 
 export default router;

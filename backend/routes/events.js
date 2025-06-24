@@ -9,7 +9,9 @@ import {
   getEventRegistrations,
   updateAttendance,
   createEventPaymentIntent,
-  confirmEventPaymentAndRegister
+  confirmEventPaymentAndRegister,
+  getEventRevenue
+
 } from '../controllers/eventController.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 import {
@@ -37,5 +39,7 @@ router.post('/:eventId/register', authenticateToken, validateEventId, validateEv
 router.delete('/:eventId/unregister', authenticateToken, validateEventId, unregisterFromEvent);
 router.get('/:id/registrations', authenticateToken, getEventRegistrations);
 router.post('/:id/attendance', authenticateToken, updateAttendance);
+
+router.get('/events/:id/revenue', authenticateToken, getEventRevenue);
 
 export default router;

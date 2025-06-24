@@ -78,13 +78,14 @@ export const confirmEventPaymentAndRegister = async (req, res) => {
     // Register user for event
     await pool.query(`
       INSERT INTO event_registrations
-      (user_id, event_id, registration_type, payment_status, amount_paid, stripe_payment_intent_id)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      (user_id, event_id, registration_type, payment_status, payment_method,amount_paid, stripe_payment_intent_id)
+      VALUES ($1, $2, $3, $4, $5, $6,$7)
     `, [
       userId,
       eventId,
       'participant',
       'completed',
+      'stripe',
       paymentIntent.amount / 100,
       paymentIntentId
     ]);
@@ -442,13 +443,25 @@ export const getEventRegistrations = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      `SELECT er.user_id, er.is_present, u.name, u.email, u.registration_number
-       FROM event_registrations er
-       JOIN users u ON er.user_id = u.id
-       WHERE er.event_id = $1
-       ORDER BY u.name`,
+      `SELECT 
+        er.user_id, 
+        er.is_present, 
+        er.amount_paid,
+        er.payment_status,
+        er.registered_at,
+        u.name, 
+        u.email, 
+        u.registration_number,
+        e.price as event_price,
+        COALESCE(er.amount_paid, e.price) as calculated_amount_paid
+      FROM event_registrations er
+      JOIN users u ON er.user_id = u.id
+      JOIN events e ON er.event_id = e.id
+      WHERE er.event_id = $1
+      ORDER BY u.name`,
       [id]
     );
+
     res.json({ success: true, registrations: result.rows });
   } catch (error) {
     console.error('Get event registrations error:', error);
@@ -496,3 +509,33 @@ export const updateAttendance = async (req, res) => {
     client.release();
   }
 };
+
+export const getEventRevenue = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query(
+      `SELECT er.user_id, er.amount_paid, er.payment_status, er.registered_at,
+              u.name, u.email, u.registration_number
+       FROM event_registrations er
+       JOIN users u ON er.user_id = u.id
+       WHERE er.event_id = $1 AND er.payment_status = 'completed'
+       ORDER BY er.registered_at DESC`,
+      [id]
+    );
+
+    // Calculate total revenue for this event
+    const totalRevenue = result.rows.reduce((sum, reg) => sum + (parseFloat(reg.amount_paid) || 0), 0);
+
+    res.json({ 
+      success: true, 
+      registrations: result.rows,
+      totalRevenue,
+      registrationCount: result.rows.length
+    });
+  } catch (error) {
+    console.error('Get event revenue error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
