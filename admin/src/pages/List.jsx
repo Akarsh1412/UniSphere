@@ -35,6 +35,10 @@ const List = () => {
     navigate(`/list/${eventId}/attendance`);
   };
 
+  const handleVolunteers = (eventId) => {
+    navigate(`/list/${eventId}/volunteers`);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Active':
@@ -111,7 +115,6 @@ const List = () => {
                             <span>{event.venue}</span>
                           </div>
                           <div className="flex items-center space-x-1">
-                            <DollarSign size={14} />
                             <span>₹{event.price}</span>
                           </div>
                         </div>
@@ -124,7 +127,7 @@ const List = () => {
                           <span>Registrations</span>
                         </div>
                         <div className="text-lg font-bold text-gray-900">
-                          {event.registrations || 0}/{event.capacity}
+                          {parseInt(event.registrations_count, 10) || 0}/{event.capacity}
                         </div>
                       </div>
                       <div className="flex flex-col space-y-2">
@@ -141,6 +144,13 @@ const List = () => {
                         >
                           <UserCheck size={16} />
                           <span>Attendance</span>
+                        </button>
+                        <button
+                          onClick={() => handleVolunteers(event.id)}
+                          className="flex items-center space-x-2 px-4 py-2 border border-yellow-400 text-yellow-700 text-sm font-medium rounded-lg hover:bg-yellow-50 transition-colors"
+                        >
+                          <Users size={16} />
+                          <span>Manage Volunteers</span>
                         </button>
                       </div>
                     </div>

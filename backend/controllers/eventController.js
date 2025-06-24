@@ -103,7 +103,7 @@ export const getAllEvents = async (req, res) => {
     
     let query = `
       SELECT e.*, c.name as club_name, c.image as club_image,
-             COUNT(DISTINCT er.user_id) as registrations_count
+             COUNT(DISTINCT er.user_id) FILTER (WHERE er.registration_type = 'participant') as registrations_count 
       FROM events e
       LEFT JOIN clubs c ON e.club_id = c.id
       LEFT JOIN event_registrations er ON e.id = er.event_id
@@ -476,12 +476,42 @@ export const getEventRegistrations = async (req, res) => {
       FROM event_registrations er
       JOIN users u ON er.user_id = u.id
       JOIN events e ON er.event_id = e.id
-      WHERE er.event_id = $1
+      WHERE er.event_id = $1 and er.registration_type = 'participant'
       ORDER BY u.name`,
       [id]
     );
 
     res.json({ success: true, registrations: result.rows });
+  } catch (error) {
+    console.error('Get event registrations error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const getEventVolunteers = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT 
+        er.user_id, 
+        er.is_present, 
+        er.amount_paid,
+        er.payment_status,
+        er.registered_at,
+        u.name, 
+        u.email, 
+        u.registration_number,
+        e.price as event_price,
+        COALESCE(er.amount_paid, e.price) as calculated_amount_paid
+      FROM event_registrations er
+      JOIN users u ON er.user_id = u.id
+      JOIN events e ON er.event_id = e.id
+      WHERE er.event_id = $1 and er.registration_type = 'volunteer'
+      ORDER BY u.name`,
+      [id]
+    );
+
+    res.json({ success: true, volunteers: result.rows });
   } catch (error) {
     console.error('Get event registrations error:', error);
     res.status(500).json({ success: false, message: 'Server error' });

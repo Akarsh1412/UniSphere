@@ -10,8 +10,8 @@ import {
   updateAttendance,
   createEventPaymentIntent,
   confirmEventPaymentAndRegister,
-  getEventRevenue
-
+  getEventRevenue,
+  getEventVolunteers // <-- Add this import
 } from '../controllers/eventController.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 import {
@@ -38,6 +38,8 @@ router.get('/user/registered', authenticateToken, getUserEvents);
 router.post('/:eventId/register', authenticateToken, validateEventId, validateEventRegistration, registerForEvent);
 router.delete('/:eventId/unregister', authenticateToken, validateEventId, unregisterFromEvent);
 router.get('/:id/registrations', authenticateToken, getEventRegistrations);
+router.get('/:id/volunteers', authenticateToken, getEventVolunteers);
+
 router.post('/:id/attendance', authenticateToken, updateAttendance);
 
 router.get('/events/:id/revenue', authenticateToken, getEventRevenue);

@@ -13,6 +13,7 @@ import Attendance from './pages/Attendance'
 import ProtectedRoute from './ProtectedRoute'
 import Clubs from './pages/Club'
 import ClubDetail from './pages/ClubDetails'
+import Volunteers from './pages/Volunteers'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -28,6 +29,7 @@ const router = createBrowserRouter(
         <Route path='clubs' element={<Clubs />} />
         <Route path='clubs/:id' element={<ClubDetail />} />
         <Route path="/list/:id/attendance" element={<Attendance />} />
+        <Route path="/list/:id/volunteers" element={<Volunteers />} />
         <Route path='announcement' element={<Announcement />} />
       </Route>
     </Route>
