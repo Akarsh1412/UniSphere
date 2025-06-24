@@ -3,6 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Calendar, Clock, MapPin, Users, UserPlus, ArrowLeft, Star, Share2, CreditCard } from "lucide-react";
 import Card from "../components/Cards";
 import axios from "axios";
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import EventPaymentForm from "../components/EventPaymentForm";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISH_KEY);
 
 const EventDetail = () => {
   const { id } = useParams();
@@ -12,6 +17,8 @@ const EventDetail = () => {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showStripeForm, setShowStripeForm] = useState(false);
+  const [clientSecret, setClientSecret] = useState(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -25,14 +32,12 @@ const EventDetail = () => {
       setEvent(response.data.event);
       setError(null);
     } catch (error) {
-      console.error("Error fetching event:", error);
       setError("Failed to load event details. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper function to format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -42,7 +47,6 @@ const EventDetail = () => {
     });
   };
 
-  // Helper function to format time
   const formatTime = (timeString) => {
     const [hours, minutes] = timeString.split(':');
     const date = new Date();
@@ -54,7 +58,6 @@ const EventDetail = () => {
     });
   };
 
-  // Helper function to parse JSON strings safely
   const parseJSONArray = (jsonString, fallback = []) => {
     try {
       return JSON.parse(jsonString);
@@ -63,48 +66,69 @@ const EventDetail = () => {
     }
   };
 
-  const handleRegistration = () => {
+  const handleRegistration = async () => {
     if (!event) return;
 
     if (selectedRegistration === "volunteer") {
-      alert(
-        "Volunteer registration submitted! You will receive confirmation via email."
-      );
+      alert("Volunteer registration submitted! You will receive confirmation via email.");
       return;
     }
 
-    const amount =
-      selectedRegistration === "student" 
-        ? parseFloat(event.price) 
-        : parseFloat(event.price) * 1.5;
+    const isPaid = parseFloat(event.price) > 0;
+    if (paymentMethod === "stripe" && isPaid) {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          alert("You must be logged in to register for events");
+          navigate("/login");
+          return;
+        }
+        const intentRes = await axios.post(
+          `http://localhost:5000/api/events/${event.id}/create-payment-intent`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setClientSecret(intentRes.data.clientSecret);
+        setShowStripeForm(true);
+      } catch (err) {
+        alert("Payment initiation failed. " + (err.response?.data?.message || err.message));
+      }
+      return;
+    }
 
-    if (paymentMethod === "stripe") {
-      window.open(
-        `https://checkout.stripe.com/pay?amount=${
-          amount * 100
-        }&currency=inr&event=${event.id}`,
-        "_blank"
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert("You must be logged in to register for events");
+        navigate("/login");
+        return;
+      }
+      await axios.post(
+        `http://localhost:5000/api/events/${event.id}/register`,
+        { registrationType: selectedRegistration, paymentMethod },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-    } else if (paymentMethod === "payu") {
-      window.open(
-        `https://secure.payu.in/checkout?amount=${amount}&event=${event.id}`,
-        "_blank"
-      );
+      alert("Registration successful!");
+      fetchEvent();
+    } catch (err) {
+      alert("Registration failed. " + (err.response?.data?.message || err.message));
     }
   };
 
-  const handleShare = () => {
-    if (!event) return;
-
-    if (navigator.share) {
-      navigator.share({
-        title: event.title,
-        text: event.description,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert("Event link copied to clipboard!");
+  const handlePaymentSuccess = async (paymentIntentId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `http://localhost:5000/api/events/confirm-payment`,
+        { paymentIntentId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setShowStripeForm(false);
+      setClientSecret(null);
+      alert("Payment successful! You are registered for the event.");
+      fetchEvent();
+    } catch (err) {
+      alert("Payment confirmation failed. " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -158,7 +182,6 @@ const EventDetail = () => {
 
   const registrationsCount = parseInt(event.registrations_count) || 0;
   const capacity = event.capacity || 0;
-  const volunteersCount = parseInt(event.volunteers_count) || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -172,7 +195,6 @@ const EventDetail = () => {
             <span>Back to Events</span>
           </button>
         </div>
-
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <Card className="overflow-hidden">
@@ -194,13 +216,23 @@ const EventDetail = () => {
                     </p>
                   </div>
                   <button
-                    onClick={handleShare}
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({
+                          title: event.title,
+                          text: event.description,
+                          url: window.location.href,
+                        });
+                      } else {
+                        navigator.clipboard.writeText(window.location.href);
+                        alert("Event link copied to clipboard!");
+                      }
+                    }}
                     className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
                   >
                     <Share2 size={24} />
                   </button>
                 </div>
-
                 <div className="grid md:grid-cols-2 gap-6 mb-6">
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3 text-gray-600">
@@ -233,7 +265,6 @@ const EventDetail = () => {
                     </div>
                   </div>
                 </div>
-
                 <div className="mb-6">
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
@@ -247,7 +278,6 @@ const EventDetail = () => {
                     {Math.max(0, capacity - registrationsCount)} spots remaining
                   </p>
                 </div>
-
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-3">
                     About This Event
@@ -258,7 +288,6 @@ const EventDetail = () => {
                 </div>
               </div>
             </Card>
-
             {schedule.length > 0 && (
               <Card className="p-8">
                 <h3 className="text-2xl font-semibold text-gray-900 mb-6">
@@ -276,7 +305,6 @@ const EventDetail = () => {
                 </div>
               </Card>
             )}
-
             {guests.length > 0 && (
               <Card className="p-8">
                 <h3 className="text-2xl font-semibold text-gray-900 mb-6">
@@ -297,7 +325,6 @@ const EventDetail = () => {
                 </div>
               </Card>
             )}
-
             {coordinators.length > 0 && (
               <Card className="p-8">
                 <h3 className="text-2xl font-semibold text-gray-900 mb-6">
@@ -326,13 +353,11 @@ const EventDetail = () => {
               </Card>
             )}
           </div>
-
           <div className="space-y-6">
             <Card className="p-6 sticky top-24">
               <h3 className="text-xl font-semibold text-gray-900 mb-6">
                 Register for Event
               </h3>
-
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -386,7 +411,6 @@ const EventDetail = () => {
                     </label>
                   </div>
                 </div>
-
                 {selectedRegistration !== "volunteer" && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -407,39 +431,33 @@ const EventDetail = () => {
                           Stripe
                         </span>
                       </label>
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="payment"
-                          value="payu"
-                          checked={paymentMethod === "payu"}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                          className="text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm flex items-center">
-                          <CreditCard size={16} className="mr-1" />
-                          PayU
-                        </span>
-                      </label>
                     </div>
                   </div>
                 )}
               </div>
-
-              <button
-                onClick={handleRegistration}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                {selectedRegistration === "volunteer"
-                  ? "Register as Volunteer"
-                  : `Proceed to Pay ₹${
-                      selectedRegistration === "student"
-                        ? parseFloat(event.price)
-                        : Math.round(parseFloat(event.price) * 1.5)
-                    }`}
-              </button>
+              {!showStripeForm && (
+                <button
+                  onClick={handleRegistration}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  {selectedRegistration === "volunteer"
+                    ? "Register as Volunteer"
+                    : `Proceed to Pay ₹${
+                        selectedRegistration === "student"
+                          ? parseFloat(event.price)
+                          : Math.round(parseFloat(event.price) * 1.5)
+                      }`}
+                </button>
+              )}
+              {showStripeForm && clientSecret && (
+                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <EventPaymentForm onPaymentSuccess={handlePaymentSuccess} />
+                </Elements>
+              )}
+              {showStripeForm && !clientSecret && (
+                <div className="text-center py-4 text-gray-500">Loading payment form...</div>
+              )}
             </Card>
-
             {requirements.length > 0 && (
               <Card className="p-6">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">

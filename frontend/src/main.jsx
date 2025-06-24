@@ -14,6 +14,10 @@ import ClubDetails from './pages/ClubDetails';
 import Signup from './pages/Signup';
 import Profile from './pages/Profile';
 import Chat from './pages/Chat';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISH_KEY);
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -37,6 +41,8 @@ const router = createBrowserRouter(
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <Elements stripe={stripePromise}>
+      <RouterProvider router={router} />
+    </Elements>
   </StrictMode>
 );

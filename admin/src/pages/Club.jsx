@@ -16,8 +16,14 @@ const Clubs = () => {
     website: '',
     instagram: '',
     twitter: '',
-    facebook: ''
+    facebook: '',
+    established: '',
+    membership_fee: 0,
+    featured: false,
+    stripe_account_id: '',
+    stripe_price_id: ''
   });
+
   const imageInputRef = useRef();
   const coverInputRef = useRef();
   const navigate = useNavigate();
@@ -37,8 +43,11 @@ const Clubs = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const handleImageUpload = (e) => {
@@ -69,6 +78,8 @@ const Clubs = () => {
         if (formData[key]) {
           apiFormData.append(key, formData[key]);
         }
+      } else if (typeof formData[key] === 'boolean') {
+        apiFormData.append(key, formData[key] ? 'true' : 'false');
       } else {
         apiFormData.append(key, formData[key]);
       }
@@ -92,7 +103,12 @@ const Clubs = () => {
         website: '',
         instagram: '',
         twitter: '',
-        facebook: ''
+        facebook: '',
+        established: '',
+        membership_fee: 0,
+        featured: false,
+        stripe_account_id: '',
+        stripe_price_id: ''
       });
       fetchClubs();
     } catch (err) {
@@ -155,7 +171,7 @@ const Clubs = () => {
         </div>
         {showAdd && (
           <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-white rounded-xl p-8 shadow-2xl max-w-lg w-full relative">
+            <div className="bg-white rounded-xl p-8 shadow-2xl max-w-lg w-full relative max-h-screen overflow-y-auto my-8">
               <button
                 onClick={() => setShowAdd(false)}
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-700"
@@ -276,6 +292,60 @@ const Clubs = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Established Year</label>
+                  <input
+                    type="text"
+                    name="established"
+                    value={formData.established}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="e.g. 2023"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Membership Fee (₹)</label>
+                  <input
+                    type="number"
+                    name="membership_fee"
+                    min="0"
+                    step="0.01"
+                    value={formData.membership_fee}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Featured</label>
+                  <input
+                    type="checkbox"
+                    name="featured"
+                    checked={formData.featured}
+                    onChange={handleInputChange}
+                    className="mr-2"
+                  />
+                  <span className="text-gray-600">Mark as Featured</span>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Stripe Account ID</label>
+                  <input
+                    type="text"
+                    name="stripe_account_id"
+                    value={formData.stripe_account_id}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Stripe Price ID</label>
+                  <input
+                    type="text"
+                    name="stripe_price_id"
+                    value={formData.stripe_price_id}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
                 </div>
                 <div className="flex justify-end space-x-3 pt-4">
                   <button

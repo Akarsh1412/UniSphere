@@ -1,4 +1,100 @@
 import pool from '../config/database.js';
+import stripe from 'stripe';
+import authConfig from '../config/auth.js';
+const stripeClient = stripe(authConfig.stripeSecret);
+
+export const createEventPaymentIntent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user.userId;
+
+    // 1. Validate event exists
+    const eventResult = await pool.query(`
+      SELECT e.price, e.currency, c.stripe_account_id
+      FROM events e
+      JOIN clubs c ON e.club_id = c.id
+      WHERE e.id = $1
+    `, [eventId]);
+
+    if (eventResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    const event = eventResult.rows[0];
+
+    // 2. Validate payment requirements
+    if (!event.price || event.price <= 0) {
+      return res.status(400).json({ message: 'Event is free' });
+    }
+    if (!event.stripe_account_id) {
+      return res.status(400).json({ message: 'Club Stripe account not set up' });
+    }
+    if (!event.stripe_account_id.startsWith('acct_')) {
+      return res.status(400).json({ message: 'Invalid Stripe account ID' });
+    }
+
+    // 3. Create PaymentIntent
+    const paymentIntent = await stripeClient.paymentIntents.create({
+      amount: Math.round(event.price * 100),
+      currency: event.currency || 'inr',
+      payment_method_types: ['card'],
+      transfer_data: {
+        destination: event.stripe_account_id,
+      },
+      metadata: { userId, eventId }
+    });
+
+    res.json({
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id
+    });
+    
+  } catch (error) {
+    console.error('PaymentIntent Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'PaymentIntent creation failed',
+      error: error.message // Include Stripe error details
+    });
+  }
+};
+
+
+export const confirmEventPaymentAndRegister = async (req, res) => {
+  try {
+    const { paymentIntentId } = req.body;
+    const userId = req.user.userId;
+
+    // Retrieve PaymentIntent from Stripe
+    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({ message: 'Payment not completed' });
+    }
+
+    const { eventId } = paymentIntent.metadata;
+
+    // Register user for event
+    await pool.query(`
+      INSERT INTO event_registrations
+      (user_id, event_id, registration_type, payment_status, amount_paid, stripe_payment_intent_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [
+      userId,
+      eventId,
+      'participant',
+      'completed',
+      paymentIntent.amount / 100,
+      paymentIntentId
+    ]);
+
+    res.json({ success: true, message: 'Registration and payment successful' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Payment confirmation failed' });
+  }
+};
+
 
 export const getAllEvents = async (req, res) => {
   try {
