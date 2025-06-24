@@ -24,7 +24,6 @@
     "react-share": "^5.2.2",
     "redux": "^5.0.1",
     "redux-persist": "^6.0.0",
-    "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.9",
     "yet-another-react-lightbox": "^3.23.3"
   },

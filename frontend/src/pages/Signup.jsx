@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, User, Mail, Lock, Upload, X } from 'lucide-react';
+import Toast from '../components/Toast';
 import axios from 'axios';
 
 const Signup = () => {
@@ -18,6 +19,18 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Toast states
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  // Toast helper functions
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast({ show: false, message: '', type: 'success' });
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -41,6 +54,7 @@ const Signup = () => {
           ...prev,
           profilePicture: 'Please select a valid image file.'
         }));
+        showToast('Please select a valid image file.', 'error');
         return;
       }
       
@@ -49,6 +63,7 @@ const Signup = () => {
           ...prev,
           profilePicture: 'Image size must be less than 5MB.'
         }));
+        showToast('Image size must be less than 5MB.', 'error');
         return;
       }
 
@@ -64,6 +79,7 @@ const Signup = () => {
           ...prev,
           profilePicture: ''
         }));
+        showToast('Profile picture uploaded successfully!', 'success');
       };
       reader.readAsDataURL(file);
     }
@@ -79,6 +95,7 @@ const Signup = () => {
       ...prev,
       profilePicture: ''
     }));
+    showToast('Profile picture removed', 'info');
   };
 
   const validateForm = () => {
@@ -109,6 +126,13 @@ const Signup = () => {
     }
     
     setErrors(newErrors);
+    
+    // Show validation errors via toast
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      showToast(firstError, 'error');
+    }
+    
     return Object.keys(newErrors).length === 0;
   };
 
@@ -132,15 +156,24 @@ const Signup = () => {
     }
 
     try {
-      await axios.post('http://localhost:5000/api/auth/register', data, {
+      const API_URL = import.meta.env.VITE_API_BASE_URL;
+      await axios.post(`${API_URL}/api/auth/register`, data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      navigate('/login');
+      
+      showToast('Account created successfully! Please log in.', 'success');
+      
+      // Delay navigation to show success toast
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+      
     } catch (error) {
       const message = error.response?.data?.message || 'Registration failed. Please try again.';
       setErrors({ form: message });
+      showToast(message, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -313,6 +346,14 @@ const Signup = () => {
           </Link>
         </div>
       </div>
+
+      {/* Toast Component */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.show}
+        onClose={hideToast}
+      />
     </div>
   );
 };

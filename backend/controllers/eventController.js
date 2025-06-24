@@ -182,7 +182,7 @@ export const getEventById = async (req, res) => {
     
     const result = await pool.query(`
       SELECT e.*, c.name as club_name, c.image as club_image, c.id as club_id,
-             COUNT(DISTINCT er.user_id) as registrations_count,
+             COUNT(DISTINCT er.user_id) FILTER (WHERE er2.registration_type = 'participant') as registrations_count,
              COUNT(DISTINCT er2.user_id) FILTER (WHERE er2.registration_type = 'volunteer') as volunteers_count
       FROM events e
       LEFT JOIN clubs c ON e.club_id = c.id
@@ -231,7 +231,7 @@ export const getEventById = async (req, res) => {
 export const registerForEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { registrationType = 'participant', paymentMethod, amount } = req.body;
+    const { registrationType, paymentMethod, amount } = req.body;
     const userId = req.user.userId;
     
     // Check if event exists and get details
@@ -262,21 +262,40 @@ export const registerForEvent = async (req, res) => {
     }
     
     // Check capacity
-    if (event.capacity) {
-      const registrationCount = await pool.query(
-        'SELECT COUNT(*) FROM event_registrations WHERE event_id = $1',
-        [eventId]
-      );
-      
-      if (parseInt(registrationCount.rows[0].count) >= event.capacity) {
-        return res.status(400).json({ message: 'Event is at full capacity' });
+    if (registrationType === 'participant') {
+      if (event.capacity) {
+        const registrationCount = await pool.query(
+          'SELECT COUNT(*) FROM event_registrations WHERE event_id = $1',
+          [eventId]
+        );
+
+        if (parseInt(registrationCount.rows[0].count) >= event.capacity) {
+          return res.status(400).json({ message: 'Event is at full capacity' });
+        }
+      }
+    } else if (registrationType === 'volunteer') {
+      // Check if volunteers needed
+      if (event.volunteers_needed) {
+        const volunteerCount = await pool.query(
+          'SELECT COUNT(*) FROM event_registrations WHERE event_id = $1 AND registration_type = $2',
+          [eventId, 'volunteer']
+        );
+
+        if (parseInt(volunteerCount.rows[0].count) >= event.volunteers_needed) {
+          return res.status(400).json({ message: 'No more volunteer spots available' });
+        }
       }
     }
     
     // Determine payment status
-    const paymentStatus = event.price > 0 ? 'pending' : 'completed';
-    const amountPaid = event.price > 0 ? (amount || event.price) : 0;
-    
+    let paymentStatus = 0;
+    let amountPaid = 0;
+
+    if (registrationType === 'participant') {
+      paymentStatus = event.price > 0 ? 'pending' : 'completed';
+      amountPaid = event.price > 0 ? (amount || event.price) : 0;
+    }
+
     // Register for event
     await pool.query(`
       INSERT INTO event_registrations 

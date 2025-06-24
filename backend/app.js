@@ -18,11 +18,6 @@ dotenv.config();
 const createApp = () => {
   const app = express();
 
-  app.use((req, res, next) => {
-    req.io = app.get('io');
-    next();
-  });
-
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {

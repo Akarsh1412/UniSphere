@@ -1,11 +1,8 @@
-import http from 'http';
-import { Server } from 'socket.io';
 import createApp from './app.js';
 import pool from './config/database.js';
 import migrationManager from './config/migrations.js';
-import initializeSocket from './socket/socketHandler.js';
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 const startServer = async () => {
   try {
@@ -18,21 +15,8 @@ const startServer = async () => {
     client.release();
 
     const app = createApp();
-    const server = http.createServer(app);
-
-    const io = new Server(server, {
-      cors: {
-        origin: process.env.NODE_ENV === 'production' 
-          ? process.env.FRONTEND_URL 
-          : ['http://localhost:5173', 'http://localhost:5174'],
-        methods: ["GET", "POST", "PUT", "DELETE"]
-      }
-    });
     
-    app.set('io', io);
-    initializeSocket(io);
-    
-    server.listen(PORT, () => {
+     const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌱 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log('🎉 UniSphere Backend is ready!');

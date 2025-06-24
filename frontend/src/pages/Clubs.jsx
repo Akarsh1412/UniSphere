@@ -4,13 +4,13 @@ import axios from "axios";
 import ClubCard from "../components/ClubCard";
 
 const Clubs = () => {
+  const API_URL = import.meta.env.VITE_API_BASE_URL;
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [clubs, setClubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Categories from the API data
   const categories = [
     "All",
     "Technology",
@@ -21,15 +21,13 @@ const Clubs = () => {
     "Social",
   ];
 
-  // Fetch clubs from API
   const fetchClubs = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get("http://localhost:5000/api/clubs");
+      const response = await axios.get(`${API_URL}/api/clubs`);
       
       if (response.data.success) {
-        // Transform API data to match the expected format
         const transformedClubs = response.data.clubs.map(club => ({
           id: club.id,
           name: club.name,
@@ -235,19 +233,6 @@ const Clubs = () => {
             </p>
           </div>
         )}
-
-        {/* Create Club CTA - Commented out as in original */}
-        {/* <div className="mt-16 text-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            Can't find what you're looking for?
-          </h2>
-          <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
-            Start your own club and bring together people who share your passion!
-          </p>
-          <button className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-            Create a Club
-          </button>
-        </div> */}
       </div>
     </div>
   );

@@ -2,15 +2,19 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLogout } from '../hooks/useLogout';
-import { updateUser } from '../redux/userSlice'; // Import updateUser action
+import { useToast } from '../hooks/useToast';
+import { updateUser } from '../redux/userSlice';
+import Toast from '../components/Toast';
 import axios from 'axios';
-import { User, Mail, Calendar, Shield, CheckCircle, Clock, LogOut, Edit, TrendingUp, Users, FileText, Heart, ChevronDown, ChevronUp } from 'lucide-react';
+import { User, Mail, Calendar, Shield, CheckCircle, LogOut, Edit, TrendingUp, Users, FileText, Heart, ChevronDown, ChevronUp, Lock, Eye, EyeOff } from 'lucide-react';
 
 const Profile = () => {
+  const API_URL = import.meta.env.VITE_API_BASE_URL;
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector(state => state.user);
   const logout = useLogout();
+  const { showSuccess, showError } = useToast();
   
   // Edit mode states
   const [isEditing, setIsEditing] = useState(false);
@@ -20,8 +24,23 @@ const Profile = () => {
     profilePicture: null
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  
+  // Password change states
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  
+  // Toast states
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   
   // Stats states
   const [showStats, setShowStats] = useState(false);
@@ -33,7 +52,6 @@ const Profile = () => {
     if (!user) {
       navigate('/login');
     } else {
-      // Initialize edit form with current user data
       setEditForm({
         name: user.name || '',
         registrationNumber: user.registrationNumber || '',
@@ -42,12 +60,38 @@ const Profile = () => {
     }
   }, [user, navigate]);
 
+  // Toast helper function
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast({ show: false, message: '', type: 'success' });
+  };
+
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditForm(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  // Handle password form changes
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Toggle password visibility
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field]
     }));
   };
 
@@ -66,8 +110,6 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-    setSuccess('');
 
     try {
       const formData = new FormData();
@@ -85,7 +127,7 @@ const Profile = () => {
       }
 
       const token = localStorage.getItem('token');
-      const response = await axios.put('http://localhost:5000/api/users/profile', formData, {
+      const response = await axios.put(`${API_URL}/api/users/profile`, formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -93,34 +135,93 @@ const Profile = () => {
       });
 
       if (response.data.success) {
-        // Update Redux store with new user data
         dispatch(updateUser(response.data.user));
-        setSuccess('Profile updated successfully!');
+        showToast('Profile updated successfully!', 'success');
         setIsEditing(false);
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error) {
       console.error('Profile update error:', error);
-      setError(error.response?.data?.message || 'Failed to update profile');
+      showToast(error.response?.data?.message || 'Failed to update profile', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Submit password change
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordLoading(true);
+
+    // Validate passwords match
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showToast('New passwords do not match', 'error');
+      setPasswordLoading(false);
+      return;
+    }
+
+    // Validate password strength
+    if (passwordForm.newPassword.length < 6) {
+      showToast('New password must be at least 6 characters long', 'error');
+      setPasswordLoading(false);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(`${API_URL}/api/users/password`, {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data.success) {
+        showToast('Password changed successfully!', 'success');
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setShowPasswordForm(false);
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      showToast(error.response?.data?.message || 'Failed to change password', 'error');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  // Cancel password change
+  const cancelPasswordChange = () => {
+    setShowPasswordForm(false);
+    setPasswordForm({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+    setShowPasswords({
+      current: false,
+      new: false,
+      confirm: false
+    });
+  };
+
   // Fetch user stats
   const fetchStats = async () => {
-    if (stats) return; // Don't fetch if already loaded
+    if (stats) return;
     
     setStatsLoading(true);
     try {
       const token = localStorage.getItem('token');
       const [statsResponse, clubsResponse] = await Promise.all([
-        axios.get('http://localhost:5000/api/users/stats', {
+        axios.get(`${API_URL}/api/users/stats`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        axios.get('http://localhost:5000/api/users/clubs', {
+        axios.get(`${API_URL}/api/users/clubs`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -134,6 +235,7 @@ const Profile = () => {
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error);
+      showToast('Failed to load stats', 'error');
     } finally {
       setStatsLoading(false);
     }
@@ -143,7 +245,7 @@ const Profile = () => {
   const toggleStats = () => {
     setShowStats(prev => {
       if (!prev) {
-        fetchStats(); // Fetch stats when opening
+        fetchStats();
       }
       return !prev;
     });
@@ -157,8 +259,6 @@ const Profile = () => {
       registrationNumber: user.registrationNumber || '',
       profilePicture: null
     });
-    setError('');
-    setSuccess('');
   };
 
   if (!user) {
@@ -221,44 +321,7 @@ const Profile = () => {
           </div>
 
           <div className="p-6">
-            {/* Success/Error Messages */}
-            {success && (
-              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-green-800">{success}</p>
-              </div>
-            )}
-            
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-800">{error}</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="flex items-center">
-                  <div className="bg-green-100 rounded-full p-2">
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-green-900">Account Status</p>
-                    <p className="text-xs text-green-700">
-                      {user.verified ? (
-                        <span className="flex items-center">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Verified
-                        </span>
-                      ) : (
-                        <span className="flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Pending Verification
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="bg-blue-50 rounded-lg p-4">
                 <div className="flex items-center">
                   <div className="bg-blue-100 rounded-full p-2">
@@ -412,6 +475,18 @@ const Profile = () => {
                     </div>
                   </div>
 
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center">
+                      <Calendar className="w-5 h-5 text-gray-400 mr-3" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Member Since</p>
+                        <p className="text-sm text-gray-600">
+                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <button
                       type="submit"
@@ -500,18 +575,129 @@ const Profile = () => {
               )}
             </div>
 
-            {!isEditing && (
+            {/* Password Change Form */}
+            {showPasswordForm && (
               <div className="border-t border-gray-200 pt-6 mt-6">
-                <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                  <h4 className="text-sm font-medium text-blue-900 mb-2">Account Status</h4>
-                  <p className="text-sm text-blue-700">
-                    {user.verified 
-                      ? "Your account is fully verified. You have access to all platform features."
-                      : "Your account is pending verification. Some features may be limited until your account is verified."
-                    }
-                  </p>
-                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h3>
+                
+                <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      Current Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.current ? "text" : "password"}
+                        name="currentPassword"
+                        value={passwordForm.currentPassword}
+                        onChange={handlePasswordChange}
+                        className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('current')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPasswords.current ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.new ? "text" : "password"}
+                        name="newPassword"
+                        value={passwordForm.newPassword}
+                        onChange={handlePasswordChange}
+                        className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        required
+                        minLength={6}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('new')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPasswords.new ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Password must be at least 6 characters long
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      Confirm New Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.confirm ? "text" : "password"}
+                        name="confirmPassword"
+                        value={passwordForm.confirmPassword}
+                        onChange={handlePasswordChange}
+                        className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('confirm')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPasswords.confirm ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <button
+                      type="submit"
+                      disabled={passwordLoading}
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50"
+                    >
+                      {passwordLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Changing Password...
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4 mr-2" />
+                          Change Password
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelPasswordChange}
+                      className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {!isEditing && !showPasswordForm && (
+              <div className="border-t border-gray-200 pt-6 mt-6">
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={() => setIsEditing(true)}
@@ -519,6 +705,13 @@ const Profile = () => {
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Profile
+                  </button>
+                  <button
+                    onClick={() => setShowPasswordForm(true)}
+                    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center"
+                  >
+                    <Lock className="w-4 h-4 mr-2" />
+                    Change Password
                   </button>
                   <button 
                     onClick={logout}
@@ -533,6 +726,14 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Toast Component */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.show}
+        onClose={hideToast}
+      />
     </div>
   );
 };
