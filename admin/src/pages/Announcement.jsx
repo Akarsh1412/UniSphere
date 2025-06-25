@@ -40,6 +40,7 @@ const Announcement = () => {
   const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
   const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
   const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     emailjs.init(EMAILJS_PUBLIC_KEY);
@@ -72,7 +73,7 @@ const Announcement = () => {
   const fetchEvents = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/events?upcoming=true&limit=100', {
+      const response = await fetch(`${API_URL}/api/events?upcoming=true&limit=100`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -95,7 +96,7 @@ const Announcement = () => {
   const fetchAllStudentEmails = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/users/students/emails', {
+      const response = await fetch(`${API_URL}/api/users/students/emails`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -104,7 +105,6 @@ const Announcement = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log(data);
         setRecipientCounts(prev => ({
           ...prev,
           allStudents: data.totalStudents || 0
@@ -122,12 +122,11 @@ const Announcement = () => {
       
       switch (type) {
         case 'all':
-          url = 'http://localhost:5000/api/users/students/emails';
+          url = `${API_URL}/api/users/students/emails`;
           break;
         case 'registered':
           if (!eventId) return [];
-          url = `http://localhost:5000/api/users/participants/emails/${eventId}`;
-          console.log(`Fetching registered emails for event ID: ${eventId}`);
+          url = `${API_URL}/api/users/participants/emails/${eventId}`;
           break;
         default:
           return [];
@@ -151,7 +150,7 @@ const Announcement = () => {
   const fetchEventDetails = async (eventId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/events/${eventId}`, {
+      const response = await fetch(`${API_URL}/api/events/${eventId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       

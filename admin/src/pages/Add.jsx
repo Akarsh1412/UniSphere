@@ -4,6 +4,7 @@ import { Calendar, Clock, MapPin, Users, UserPlus, Save, X, Plus, Image as Image
 
 const Add = () => {
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL;;
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -66,7 +67,7 @@ const Add = () => {
     apiFormData.set('volunteers_needed', formData.volunteers_needed === '' ? '0' : formData.volunteers_needed);
 
     try {
-      const response = await fetch('http://localhost:5000/api/events', {
+      const response = await fetch(`${API_URL}/api/events`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

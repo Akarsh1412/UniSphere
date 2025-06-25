@@ -11,6 +11,7 @@ const Dashboard = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [eventRegistrations, setEventRegistrations] = useState([]);
   const [clubEvents, setClubEvents] = useState([]);
+  const API_URL = import.meta.env.VITE_API_URL;
   
   const [analyticsData, setAnalyticsData] = useState({
     totalClubs: 0,
@@ -41,7 +42,7 @@ const Dashboard = () => {
         throw new Error('Authentication required');
       }
 
-      const clubsResponse = await fetch('http://localhost:5000/api/clubs?limit=100', {
+      const clubsResponse = await fetch(`${API_URL}/api/clubs?limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const clubsData = await clubsResponse.json();
@@ -53,7 +54,7 @@ const Dashboard = () => {
       const clubsList = clubsData.clubs || [];
       setClubs(clubsList);
 
-      const eventsResponse = await fetch('http://localhost:5000/api/events?limit=100', {
+      const eventsResponse = await fetch(`${API_URL}/api/events?limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const eventsData = await eventsResponse.json();
@@ -65,7 +66,7 @@ const Dashboard = () => {
       const eventsList = eventsData.events || [];
       setEvents(eventsList);
 
-      const revenueResponse = await fetch('http://localhost:5000/api/clubs/revenue/all', {
+      const revenueResponse = await fetch(`${API_URL}/api/clubs/revenue/all`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const revenueData = await revenueResponse.json();
@@ -153,7 +154,7 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('adminToken');
       
-      const response = await fetch(`http://localhost:5000/api/events?club_id=${clubId}`, {
+      const response = await fetch(`${API_URL}/api/events?club_id=${clubId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -162,7 +163,7 @@ const Dashboard = () => {
         const eventsWithRevenue = await Promise.all(
           data.events.map(async (event) => {
             try {
-              const revenueResponse = await fetch(`http://localhost:5000/api/events/events/${event.id}/revenue`, {
+              const revenueResponse = await fetch(`${API_URL}/api/events/events/${event.id}/revenue`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
               const revenueData = await revenueResponse.json();
@@ -189,7 +190,7 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('adminToken');
       
-      const response = await fetch(`http://localhost:5000/api/events/${eventId}/registrations`, {
+      const response = await fetch(`${API_URL}/api/events/${eventId}/registrations`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();

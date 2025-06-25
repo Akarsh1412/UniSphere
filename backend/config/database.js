@@ -18,9 +18,7 @@ const pool = new Pool({
 });
 
 // Test connection
-pool.on('connect', () => {
-  console.log('✅ Connected to Aiven PostgreSQL database');
-});
+pool.on('connect', () => {});
 
 pool.on('error', (err) => {
   console.error('❌ Database connection error:', err);

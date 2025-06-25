@@ -53,7 +53,7 @@ const Login = () => {
     setIsLoading(true);
 
     // Make API call to login endpoint
-    fetch('http://localhost:5000/api/auth/admin-login', {
+    fetch(`${API_URL}api/auth/admin-login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

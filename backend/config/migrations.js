@@ -20,7 +20,6 @@ class MigrationManager {
           executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      console.log('✅ Migrations table ready');
     } catch (error) {
       // Handle sequence already exists error
       if (error.code === '23505' && error.detail?.includes('migrations_id_seq')) {

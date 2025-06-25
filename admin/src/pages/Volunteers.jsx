@@ -5,6 +5,7 @@ import { ArrowLeft, Users, UserCheck, UserX, Search, Filter, Save, CheckCircle, 
 const Volunteers = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const [eventData, setEventData] = useState(null);
   const [volunteers, setVolunteers] = useState([]);
@@ -22,8 +23,8 @@ const Volunteers = () => {
         if (!token) throw new Error('Authentication required.');
 
         const [eventRes, volunteersRes] = await Promise.all([
-          fetch(`http://localhost:5000/api/events/${id}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`http://localhost:5000/api/events/${id}/volunteers`, { headers: { 'Authorization': `Bearer ${token}` } })
+          fetch(`${API_URL}/api/events/${id}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_URL}/api/events/${id}/volunteers`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
 
         if (!eventRes.ok || !volunteersRes.ok) {
@@ -87,7 +88,7 @@ const Volunteers = () => {
         userId: v.userId,
         isPresent: v.isPresent
       }));
-      const response = await fetch(`http://localhost:5000/api/events/${id}/attendance`, {
+      const response = await fetch(`${API_URL}/api/events/${id}/attendance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

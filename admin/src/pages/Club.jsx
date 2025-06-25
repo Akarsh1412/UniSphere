@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Eye, Save, X, Upload } from 'lucide-react';
 
 const Clubs = () => {
+  const API_URL = import.meta.env.VITE_API_URL;
   const [clubs, setClubs] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,7 +35,7 @@ const Clubs = () => {
 
   const fetchClubs = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/clubs');
+      const res = await fetch(`${API_URL}/api/clubs`);
       const data = await res.json();
       setClubs(data.clubs || []);
     } catch {
@@ -86,7 +87,7 @@ const Clubs = () => {
     });
 
     try {
-      const response = await fetch('http://localhost:5000/api/clubs', {
+      const response = await fetch(`${API_URL}/api/clubs`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: apiFormData,

@@ -22,8 +22,8 @@ const Attendance = () => {
         if (!token) throw new Error('Authentication required.');
 
         const [eventRes, registrationsRes] = await Promise.all([
-          fetch(`http://localhost:5000/api/events/${id}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`http://localhost:5000/api/events/${id}/registrations`, { headers: { 'Authorization': `Bearer ${token}` } })
+          fetch(`${API_URL}/api/events/${id}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_URL}/api/events/${id}/registrations`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
 
         if (!eventRes.ok || !registrationsRes.ok) {
@@ -66,7 +66,8 @@ const Attendance = () => {
     setError('');
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:5000/api/events/${id}/attendance`, {
+      const API_URL = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${API_URL}/api/events/${id}/attendance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
