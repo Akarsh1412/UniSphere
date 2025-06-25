@@ -13,7 +13,7 @@ import {
   X,
   UploadCloud,
 } from "lucide-react";
-import axios from "axios";
+import emailjs from '@emailjs/browser';
 
 const Announcement = () => {
   const [emailType, setEmailType] = useState("custom");
@@ -26,85 +26,180 @@ const Announcement = () => {
   const [fileEmails, setFileEmails] = useState([]);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isSending, setIsSending] = useState(false);
+  const [sendMode, setSendMode] = useState("bulk");
 
-  // Backend data states
   const [events, setEvents] = useState([]);
+  const [recipientEmails, setRecipientEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEventDetails, setSelectedEventDetails] = useState(null);
-  const [registeredStudents, setRegisteredStudents] = useState([]);
-  const [allStudentsCount, setAllStudentsCount] = useState(0);
+  const [recipientCounts, setRecipientCounts] = useState({
+    allStudents: 0,
+    eventParticipants: 0
+  });
 
-  // Fetch events from backend
+  const EMAILJS_SERVICE_ID = 'unisphere_ac';
+  const EMAILJS_TEMPLATE_ID = 'template_xajoqee';
+  const EMAILJS_PUBLIC_KEY = 'pOcpO-23R7LYh6LUD';
+
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const token = localStorage.getItem('adminToken');
-        const response = await axios.get('http://localhost:5000/api/events', {
-          headers: { 'Authorization': `Bearer ${token}` },
-          params: { upcoming: 'true', limit: 100 } // Get upcoming events
-        });
-        
-        if (response.data.success) {
-          setEvents(response.data.events);
-          // Get total students count from the first event's club or make separate API call
-          setAllStudentsCount(response.data.totalStudents || 500); // You might need to add this to your API
-        }
-      } catch (error) {
-        console.error('Error fetching events:', error);
-        setEvents([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+    fetchInitialData();
   }, []);
 
-  // Fetch event details and registrations when event is selected
-  useEffect(() => {
-    const fetchEventDetails = async () => {
-      if (!selectedEvent) {
-        setSelectedEventDetails(null);
-        setRegisteredStudents([]);
-        return;
-      }
-
-      try {
-        const token = localStorage.getItem('adminToken');
-        
-        // Fetch event details
-        const eventResponse = await axios.get(`http://localhost:5000/api/events/${selectedEvent}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        // Fetch event registrations
-        const registrationsResponse = await axios.get(`http://localhost:5000/api/events/${selectedEvent}/registrations`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (eventResponse.data.success) {
-          setSelectedEventDetails(eventResponse.data.event);
-        }
-
-        if (registrationsResponse.data.success) {
-          setRegisteredStudents(registrationsResponse.data.registrations);
-        }
-      } catch (error) {
-        console.error('Error fetching event details:', error);
-        setSelectedEventDetails(null);
-        setRegisteredStudents([]);
-      }
-    };
-
-    fetchEventDetails();
-  }, [selectedEvent]);
-
-  const handleEventChange = (eventId) => {
-    setSelectedEvent(eventId);
-    const event = events.find((e) => e.id === parseInt(eventId));
-    if (event && emailType === "event") {
-      setSubject(`${event.title} - Event Details`);
+  const handleEmailTypeChange = (type) => {
+    setEmailType(type);
+    if (type === "event") {
+      setRecipientType("registered");
+    } else {
+      setRecipientType("all");
     }
+  };
+
+  const fetchInitialData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        fetchEvents(),
+        fetchAllStudentEmails()
+      ]);
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchEvents = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/events?upcoming=true&limit=100', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data.events || []);
+      } else {
+        console.error('Failed to fetch events');
+        setEvents([]);
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      setEvents([]);
+    }
+  };
+
+  const fetchAllStudentEmails = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/users/students/emails', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data);
+        setRecipientCounts(prev => ({
+          ...prev,
+          allStudents: data.totalStudents || 0
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching student emails:', error);
+    }
+  };
+
+  const fetchRecipientEmails = async (type, eventId = null) => {
+    try {
+      const token = localStorage.getItem('token');
+      let url = '';
+      
+      switch (type) {
+        case 'all':
+          url = 'http://localhost:5000/api/users/students/emails';
+          break;
+        case 'registered':
+          if (!eventId) return [];
+          url = `http://localhost:5000/api/users/participants/emails/${eventId}`;
+          console.log(`Fetching registered emails for event ID: ${eventId}`);
+          break;
+        default:
+          return [];
+      }
+
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.emails || [];
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching recipient emails:', error);
+      return [];
+    }
+  };
+
+  const fetchEventDetails = async (eventId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/events/${eventId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedEventDetails(data.event);
+        
+        const participantEmails = await fetchRecipientEmails('registered', eventId);
+        setRecipientCounts(prev => ({
+          ...prev,
+          eventParticipants: participantEmails.length
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching event details:', error);
+      setSelectedEventDetails(null);
+    }
+  };
+
+  const handleEventChange = async (eventId) => {
+    setSelectedEvent(eventId);
+    
+    if (eventId) {
+      await fetchEventDetails(eventId);
+      const event = events.find((e) => e.id === parseInt(eventId));
+      if (event && emailType === "event") {
+        setSubject(`${event.title} - Event Details`);
+      }
+    } else {
+      setSelectedEventDetails(null);
+      setRecipientCounts(prev => ({
+        ...prev,
+        eventParticipants: 0
+      }));
+    }
+  };
+
+  const handleRecipientTypeChange = async (type) => {
+    setRecipientType(type);
+    
+    let emails = [];
+    if (type === 'all') {
+      emails = await fetchRecipientEmails('all');
+    } else if (type === 'registered' && selectedEvent) {
+      emails = await fetchRecipientEmails('registered', selectedEvent);
+    }
+    
+    setRecipientEmails(emails);
   };
 
   const handleFileChange = (e) => {
@@ -114,7 +209,7 @@ const Announcement = () => {
         alert("File is too large. Maximum size is 5MB.");
         return;
       }
-      if (!["text/plain", "text/csv"].includes(file.type)) {
+      if (!["text/plain", "text/csv", "application/vnd.ms-excel"].includes(file.type)) {
         alert("Invalid file type. Please upload a .txt or .csv file.");
         return;
       }
@@ -137,12 +232,8 @@ const Announcement = () => {
     }
   };
 
-  const getSelectedEventData = () => {
-    return selectedEventDetails || events.find((e) => e.id === parseInt(selectedEvent));
-  };
-
   const generateEventEmail = () => {
-    const event = getSelectedEventData();
+    const event = selectedEventDetails;
     if (!event) return "";
     
     const eventDate = new Date(event.date).toLocaleDateString('en-US', {
@@ -152,8 +243,7 @@ const Announcement = () => {
       day: 'numeric'
     });
 
-    return `
-Dear Students,
+    return `Dear Students,
 
 We are excited to announce "${event.title}" organized by ${event.club_name}.
 
@@ -161,7 +251,7 @@ Event Details:
 📅 Date: ${eventDate}
 🕐 Time: ${event.time_start} - ${event.time_end}
 📍 Venue: ${event.venue}
-💰 Registration Fee: ₹${event.price}
+💰 Registration Fee: ₹${event.price || 0}
 
 ${event.description}
 
@@ -173,8 +263,7 @@ ${event.capacity ? `Available Spots: ${event.capacity - (event.registrations_cou
 For more information and registration, please visit our events portal.
 
 Best regards,
-Event Management Team
-    `.trim();
+UniSphere Team`;
   };
 
   const handleSendEmail = async () => {
@@ -188,18 +277,12 @@ Event Management Team
     try {
       let recipientsEmails = [];
 
-      if (recipientType === "all") {
-        // You'll need to create an API endpoint to get all student emails
-        const response = await axios.get('http://localhost:5000/api/students/emails', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
-        });
-        recipientsEmails = response.data.emails || [];
-      } else if (recipientType === "registered") {
-        recipientsEmails = registeredStudents.map(student => student.email);
-      } else if (recipientType === "manual") {
+      if (recipientType === "manual") {
         recipientsEmails = manualEmails.split(/[\n,;]+/).map((email) => email.trim()).filter((email) => email);
       } else if (recipientType === "upload") {
         recipientsEmails = fileEmails;
+      } else {
+        recipientsEmails = await fetchRecipientEmails(recipientType, selectedEvent);
       }
 
       const recipientCount = recipientsEmails.length;
@@ -210,54 +293,94 @@ Event Management Team
       }
 
       const emailBody = emailType === "event" ? generateEventEmail() : message;
-      const htmlContent = `<div style="font-family: Arial, sans-serif; line-height: 1.6;">${emailBody.replace(/\n/g, "<br>")}</div>`;
 
-      await axios.post(`http://localhost:5000/api/email/send`, {
-        to: recipientsEmails,
-        subject,
-        html: htmlContent,
-      }, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
-      });
+      if (sendMode === "bulk") {
+        const templateParams = {
+          to_email: recipientsEmails.join(', '),
+          subject: subject,
+          message: emailBody,
+          from_name: 'UniSphere Team'
+        };
 
-      alert(`Email sent successfully to ${recipientCount} recipients!`);
+        await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ID,
+          templateParams
+        );
 
-      // Reset form
+        alert(`Bulk email sent successfully to ${recipientCount} recipients!`);
+      } else {
+        let successCount = 0;
+        let failureCount = 0;
+
+        for (const email of recipientsEmails) {
+          try {
+            const templateParams = {
+              to_email: email,
+              subject: subject,
+              message: emailBody,
+              from_name: 'UniSphere Team'
+            };
+
+            await emailjs.send(
+              EMAILJS_SERVICE_ID,
+              EMAILJS_TEMPLATE_ID,
+              templateParams
+            );
+            
+            successCount++;
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+          } catch (error) {
+            console.error(`Failed to send email to ${email}:`, error);
+            failureCount++;
+          }
+        }
+
+        if (successCount > 0) {
+          alert(`Individual emails sent successfully to ${successCount} recipients!${failureCount > 0 ? ` ${failureCount} failed.` : ''}`);
+        } else {
+          alert("Failed to send emails to all recipients. Check console for details.");
+        }
+      }
+
       setSubject("");
       setMessage("");
       setSelectedEvent("");
       setManualEmails("");
       setFileEmails([]);
       setUploadedFile(null);
+
     } catch (error) {
       console.error("Email sending failed:", error);
-      const errorMessage = error.response?.data?.message || error.message;
-      alert(`Failed to send email: ${errorMessage}`);
+      alert(`Failed to send email: ${error.text || error.message}`);
     } finally {
       setIsSending(false);
     }
   };
 
   const getRecipientCount = () => {
-    if (recipientType === "all") return `All Students (${allStudentsCount})`;
-    if (recipientType === "registered") {
-      return selectedEventDetails 
-        ? `${registeredStudents.length} registered students` 
-        : "Select an event";
+    switch (recipientType) {
+      case "all":
+        return `All Students (${recipientCounts.allStudents})`;
+      case "registered":
+        return selectedEvent 
+          ? `Event Participants (${recipientCounts.eventParticipants})` 
+          : "Select an event";
+      case "manual":
+        const emails = manualEmails.split(/[\n,;]+/).filter((email) => email.trim() !== "");
+        return `${emails.length} recipients`;
+      case "upload":
+        return `${fileEmails.length} recipients from ${uploadedFile?.name || "file"}`;
+      default:
+        return "0 recipients";
     }
-    if (recipientType === "manual") {
-      const emails = manualEmails.split(/[\n,;]+/).filter((email) => email.trim() !== "");
-      return `${emails.length} recipients`;
-    }
-    if (recipientType === "upload") {
-      return `${fileEmails.length} recipients from ${uploadedFile?.name || "file"}`;
-    }
-    return "0 recipients";
   };
 
   const isFormInvalid = () => {
     const isContentInvalid = !subject || (emailType === "custom" && !message) || (emailType === "event" && !selectedEvent);
     let isRecipientInvalid = false;
+    
     if (recipientType === "registered" && !selectedEvent) {
       isRecipientInvalid = true;
     } else if (recipientType === "manual" && manualEmails.trim() === "") {
@@ -265,6 +388,7 @@ Event Management Team
     } else if (recipientType === "upload" && fileEmails.length === 0) {
       isRecipientInvalid = true;
     }
+    
     return isContentInvalid || isRecipientInvalid;
   };
 
@@ -273,7 +397,7 @@ Event Management Team
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading events...</p>
+          <p className="text-gray-600">Loading announcement system...</p>
         </div>
       </div>
     );
@@ -290,7 +414,7 @@ Event Management Team
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Send Announcement</h1>
-                <p className="text-gray-600">Send emails to students about events and updates</p>
+                <p className="text-gray-600">Send emails to students and event participants</p>
               </div>
             </div>
 
@@ -298,21 +422,36 @@ Event Management Team
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-gray-50 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Email Configuration</h3>
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid md:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Email Type</label>
-                      <select value={emailType} onChange={(e) => setEmailType(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                      <select value={emailType} onChange={(e) => handleEmailTypeChange(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="custom">Custom Message</option>
                         <option value="event">Event Promotion</option>
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Recipients</label>
-                      <select value={recipientType} onChange={(e) => setRecipientType(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="all">All Students</option>
-                        <option value="registered">Registered Students Only</option>
-                        <option value="manual">Manual Entry</option>
-                        <option value="upload">Upload File</option>
+                      <select value={recipientType} onChange={(e) => handleRecipientTypeChange(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        {emailType === "custom" ? (
+                          <>
+                            <option value="all">All Students</option>
+                            <option value="manual">Manual Entry</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="registered">Event Participants</option>
+                            <option value="manual">Manual Entry</option>
+                            <option value="upload">Upload File</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Send Mode</label>
+                      <select value={sendMode} onChange={(e) => setSendMode(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="bulk">Bulk Email</option>
+                        <option value="individual">Individual Emails</option>
                       </select>
                     </div>
                   </div>
@@ -402,6 +541,10 @@ Event Management Team
                       <span className="text-blue-700">Email Type:</span>
                       <span className="font-medium text-blue-900 capitalize">{emailType}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Send Mode:</span>
+                      <span className="font-medium text-blue-900 capitalize">{sendMode}</span>
+                    </div>
                     {selectedEventDetails && (
                       <div className="flex justify-between">
                         <span className="text-blue-700">Event:</span>
@@ -429,7 +572,7 @@ Event Management Team
                       </div>
                       <div className="flex items-center space-x-2 text-gray-600">
                         <DollarSign size={14} />
-                        <span>₹{selectedEventDetails.price}</span>
+                        <span>₹{selectedEventDetails.price || 0}</span>
                       </div>
                       <div className="flex items-center space-x-2 text-gray-600">
                         <Users size={14} />
@@ -439,14 +582,25 @@ Event Management Team
                   </div>
                 )}
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-yellow-800 mb-2">Email Guidelines</h4>
-                  <ul className="text-sm text-yellow-700 space-y-1 list-disc list-inside">
-                    <li>Keep subject lines clear and concise</li>
-                    <li>Include all relevant event details</li>
-                    <li>Use professional language</li>
-                    <li>Double-check recipient selection</li>
-                  </ul>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-800 mb-2">
+                    {emailType === "custom" ? "Custom Message Recipients" : "Event Promotion Recipients"}
+                  </h4>
+                  <div className="text-sm text-green-700 space-y-1">
+                    <p><strong>✅ Available Recipients:</strong></p>
+                    {emailType === "custom" ? (
+                      <ul className="list-disc list-inside ml-4">
+                        <li>All Students ({recipientCounts.allStudents})</li>
+                        <li>Manual Entry</li>
+                      </ul>
+                    ) : (
+                      <ul className="list-disc list-inside ml-4">
+                        <li>Event Participants</li>
+                        <li>Manual Entry</li>
+                        <li>Upload File</li>
+                      </ul>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

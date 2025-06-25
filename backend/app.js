@@ -10,7 +10,6 @@ import clubRoutes from './routes/clubs.js';
 import eventRoutes from './routes/events.js';
 import communityRoutes from './routes/community.js';
 import userRoutes from './routes/users.js';
-import emailRoutes from './routes/email.js';
 import chatRoutes from './routes/chat.js';
 
 dotenv.config();
@@ -55,7 +54,6 @@ const createApp = () => {
   app.use('/api/events', eventRoutes);
   app.use('/api/community', communityRoutes);
   app.use('/api/users', userRoutes);
-  app.use('/api/email', emailRoutes);
   app.use('/api/chat', chatRoutes);
 
   app.get('/api/health', (req, res) => {

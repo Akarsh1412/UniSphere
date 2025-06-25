@@ -231,6 +231,43 @@ export const getUserClubs = async (req, res) => {
   }
 };
 
+export const getAllStudentEmails = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT email FROM users WHERE role = $1', ['student']);
+    const emails = result.rows.map(row => row.email);
+    
+    res.json({
+      success: true,
+      emails,
+      totalStudents: emails.length
+    });
+  } catch (error) {
+    console.error('Get student emails error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const getEventParticipantEmails = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const result = await pool.query(`
+      SELECT DISTINCT u.email 
+      FROM users u
+      JOIN event_registrations er ON u.id = er.user_id
+      WHERE er.event_id = $1
+    `, [eventId]);
+    const emails = result.rows.map(row => row.email);
+    res.json({
+      success: true,
+      emails,
+      totalParticipants: emails.length
+    });
+  } catch (error) {
+    console.error('Get event participant emails error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 export const getAllUsers = async (req, res) => {
   try {
     const result = await pool.query(`SELECT email FROM users`);
@@ -240,24 +277,5 @@ export const getAllUsers = async (req, res) => {
   } catch (error) {
     console.error('Get All users error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
-  }
-};
-
-export const sendEmail = async (req, res) => {
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  try {
-    const { to, subject, html } = req.body;
-    
-    const { data, error } = await resend.emails.send({
-      from: 'EventHub <onboarding@resend.dev>',
-      to,
-      subject,
-      html
-    });
-
-    if (error) return res.status(500).json({ error });
-    res.status(200).json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 };
