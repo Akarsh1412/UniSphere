@@ -37,9 +37,9 @@ const Announcement = () => {
     eventParticipants: 0
   });
 
-  const EMAILJS_SERVICE_ID = 'unisphere_ac';
-  const EMAILJS_TEMPLATE_ID = 'template_xajoqee';
-  const EMAILJS_PUBLIC_KEY = 'pOcpO-23R7LYh6LUD';
+  const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+  const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+  const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
   useEffect(() => {
     emailjs.init(EMAILJS_PUBLIC_KEY);
