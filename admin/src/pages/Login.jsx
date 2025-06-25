@@ -51,7 +51,7 @@ const Login = () => {
 
   if (validateForm()) {
     setIsLoading(true);
-
+    const API_URL = import.meta.env.VITE_API_URL;
     // Make API call to login endpoint
     fetch(`${API_URL}api/auth/admin-login`, {
       method: 'POST',
