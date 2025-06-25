@@ -10,11 +10,9 @@ const userSlice = createSlice({
       return action.payload;
     },
     updateUser: (state, action) => {
-      // If state is null, return the new user data
       if (!state) {
         return action.payload;
       }
-      // Otherwise, merge the existing state with the new data
       return {
         ...state,
         ...action.payload

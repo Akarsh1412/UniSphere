@@ -11,7 +11,8 @@ import {
   createEventPaymentIntent,
   confirmEventPaymentAndRegister,
   getEventRevenue,
-  getEventVolunteers // <-- Add this import
+  getEventVolunteers,
+  getAllStudentEmails
 } from '../controllers/eventController.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 import {
@@ -29,6 +30,7 @@ router.get('/', optionalAuth, validatePagination, getAllEvents);
 router.get('/:id', optionalAuth, validateId, getEventById);
 
 // Payment routes
+router.get('/students/emails', authenticateToken, getAllStudentEmails);
 router.post('/:eventId/create-payment-intent', authenticateToken, createEventPaymentIntent);
 router.post('/confirm-payment', authenticateToken, confirmEventPaymentAndRegister);
 

@@ -559,6 +559,22 @@ export const updateAttendance = async (req, res) => {
   }
 };
 
+export const getAllStudentEmails = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT email FROM users WHERE role = $1', ['student']);
+    const emails = result.rows.map(row => row.email);
+    
+    res.json({
+      success: true,
+      emails,
+      totalStudents: emails.length
+    });
+  } catch (error) {
+    console.error('Get student emails error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 export const getEventRevenue = async (req, res) => {
   try {
     const { id } = req.params;

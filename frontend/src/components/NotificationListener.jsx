@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useChannel, ChannelProvider } from 'ably/react';
 import { incrementUnreadCount } from '../redux/chatSlice';
@@ -13,7 +12,7 @@ const NotificationContent = () => {
     }
   });
 
-  return null; // This component doesn't render anything
+  return null;
 };
 
 const NotificationListener = () => {

@@ -16,7 +16,6 @@ const Profile = () => {
   const logout = useLogout();
   const { showSuccess, showError } = useToast();
   
-  // Edit mode states
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -25,7 +24,6 @@ const Profile = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   
-  // Password change states
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -39,10 +37,8 @@ const Profile = () => {
     confirm: false
   });
   
-  // Toast states
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   
-  // Stats states
   const [showStats, setShowStats] = useState(false);
   const [stats, setStats] = useState(null);
   const [userClubs, setUserClubs] = useState([]);
@@ -60,7 +56,6 @@ const Profile = () => {
     }
   }, [user, navigate]);
 
-  // Toast helper function
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
   };
@@ -69,7 +64,6 @@ const Profile = () => {
     setToast({ show: false, message: '', type: 'success' });
   };
 
-  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditForm(prev => ({
@@ -78,7 +72,6 @@ const Profile = () => {
     }));
   };
 
-  // Handle password form changes
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordForm(prev => ({
@@ -87,7 +80,6 @@ const Profile = () => {
     }));
   };
 
-  // Toggle password visibility
   const togglePasswordVisibility = (field) => {
     setShowPasswords(prev => ({
       ...prev,
@@ -95,7 +87,6 @@ const Profile = () => {
     }));
   };
 
-  // Handle file upload
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -106,7 +97,6 @@ const Profile = () => {
     }
   };
 
-  // Submit profile update
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -147,19 +137,16 @@ const Profile = () => {
     }
   };
 
-  // Submit password change
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setPasswordLoading(true);
 
-    // Validate passwords match
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       showToast('New passwords do not match', 'error');
       setPasswordLoading(false);
       return;
     }
 
-    // Validate password strength
     if (passwordForm.newPassword.length < 6) {
       showToast('New password must be at least 6 characters long', 'error');
       setPasswordLoading(false);
@@ -195,7 +182,6 @@ const Profile = () => {
     }
   };
 
-  // Cancel password change
   const cancelPasswordChange = () => {
     setShowPasswordForm(false);
     setPasswordForm({
@@ -210,7 +196,6 @@ const Profile = () => {
     });
   };
 
-  // Fetch user stats
   const fetchStats = async () => {
     if (stats) return;
     
@@ -241,7 +226,6 @@ const Profile = () => {
     }
   };
 
-  // Toggle stats dropdown
   const toggleStats = () => {
     setShowStats(prev => {
       if (!prev) {
@@ -251,7 +235,6 @@ const Profile = () => {
     });
   };
 
-  // Cancel edit mode
   const cancelEdit = () => {
     setIsEditing(false);
     setEditForm({

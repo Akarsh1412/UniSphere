@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock, Upload, X } from 'lucide-react';
+import { Eye, EyeOff, Upload, X } from 'lucide-react';
 import Toast from '../components/Toast';
 import axios from 'axios';
 
@@ -20,10 +20,8 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Toast states
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  // Toast helper functions
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
   };
@@ -127,7 +125,6 @@ const Signup = () => {
     
     setErrors(newErrors);
     
-    // Show validation errors via toast
     if (Object.keys(newErrors).length > 0) {
       const firstError = Object.values(newErrors)[0];
       showToast(firstError, 'error');
@@ -165,7 +162,6 @@ const Signup = () => {
       
       showToast('Account created successfully! Please log in.', 'success');
       
-      // Delay navigation to show success toast
       setTimeout(() => {
         navigate('/login');
       }, 1500);

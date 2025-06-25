@@ -1,9 +1,4 @@
-import {
-  Mail,
-  Phone,
-  MapPin,
-  ExternalLink,
-} from "lucide-react";
+import { Mail, Phone, MapPin, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Footer = () => {
@@ -106,7 +101,7 @@ const Footer = () => {
                 placeholder="Enter your email"
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
               />
-              <button className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 transition-all duration-300">
+              <button className="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 transition-all duration-300">
                 Subscribe
               </button>
             </div>

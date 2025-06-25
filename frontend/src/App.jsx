@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "./redux/store";
-import { AblyProvider, ChannelProvider } from "ably/react"; // Added ChannelProvider to import
+import { AblyProvider, ChannelProvider } from "ably/react";
 import * as Ably from "ably";
 import AuthProvider from "./components/AuthProvider";
 

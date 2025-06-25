@@ -63,7 +63,6 @@ const Clubs = () => {
     }
   };
 
-  // Filter clubs based on search term and category
   const filteredClubs = clubs.filter((club) => {
     const matchesSearch =
       club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,14 +80,14 @@ const Clubs = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 pb-12">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-center min-h-[400px]">
             <Loader className="animate-spin text-blue-600 mb-4" size={48} />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">
+            <h2 className="text-xl font-bold text-gray-700 mb-2">
               Loading clubs...
             </h2>
-            <p className="text-gray-500">Please wait while we fetch the latest clubs</p>
+            <p className="text-gray-500 font-medium">Please wait while we fetch the latest clubs</p>
           </div>
         </div>
       </div>
@@ -98,17 +97,17 @@ const Clubs = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 pb-12">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-center min-h-[400px]">
             <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full text-center">
-              <h2 className="text-xl font-semibold text-red-800 mb-2">
+              <h2 className="text-xl font-bold text-red-800 mb-2">
                 Error Loading Clubs
               </h2>
-              <p className="text-red-600 mb-4">{error}</p>
+              <p className="text-red-600 mb-4 font-medium">{error}</p>
               <button
                 onClick={fetchClubs}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium"
               >
                 Try Again
               </button>
@@ -120,14 +119,14 @@ const Clubs = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-20 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header Section */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl md:text-5xl font-black text-blue-700 mb-4">
             Discover Your Community
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto font-medium">
             Join amazing clubs, meet like-minded people, and create
             unforgettable memories
           </p>
@@ -147,7 +146,7 @@ const Clubs = () => {
                 placeholder="Search clubs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 font-medium"
               />
             </div>
 
@@ -157,7 +156,7 @@ const Clubs = () => {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-white"
+                className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white font-medium"
               >
                 {categories.map((category) => (
                   <option key={category} value={category}>
@@ -166,11 +165,10 @@ const Clubs = () => {
                 ))}
               </select>
             </div>
-
-            {/* Refresh Button */}
+            
             <button
               onClick={fetchClubs}
-              className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-bold shadow-md hover:shadow-lg"
             >
               Refresh
             </button>
@@ -179,9 +177,9 @@ const Clubs = () => {
 
         {/* Results Count */}
         <div className="mb-6">
-          <p className="text-gray-600">
+          <p className="text-gray-600 font-medium">
             Showing{" "}
-            <span className="font-semibold text-blue-600">
+            <span className="font-bold text-blue-600">
               {filteredClubs.length}
             </span>{" "}
             clubs
@@ -189,7 +187,7 @@ const Clubs = () => {
               <span>
                 {" "}
                 in{" "}
-                <span className="font-semibold text-purple-600">
+                <span className="font-bold text-purple-600">
                   {selectedCategory}
                 </span>
               </span>
@@ -206,14 +204,14 @@ const Clubs = () => {
 
         {/* No Results */}
         {filteredClubs.length === 0 && !loading && (
-          <div className="text-center py-12">
+          <div className="text-center py-16 bg-white rounded-2xl shadow-lg border-2 border-gray-100">
             <div className="text-gray-400 mb-4">
               <Search size={64} className="mx-auto mb-4" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            <h3 className="text-xl font-bold text-gray-700 mb-2">
               No clubs found
             </h3>
-            <p className="text-gray-500">
+            <p className="text-gray-500 font-medium">
               Try adjusting your search or filter criteria
             </p>
           </div>
@@ -221,14 +219,14 @@ const Clubs = () => {
 
         {/* Empty State - No clubs at all */}
         {clubs.length === 0 && !loading && !error && (
-          <div className="text-center py-12">
+          <div className="text-center py-16 bg-white rounded-2xl shadow-lg border-2 border-gray-100">
             <div className="text-gray-400 mb-4">
               <Search size={64} className="mx-auto mb-4" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            <h3 className="text-xl font-bold text-gray-700 mb-2">
               No clubs available
             </h3>
-            <p className="text-gray-500">
+            <p className="text-gray-500 font-medium">
               Be the first to create a club!
             </p>
           </div>

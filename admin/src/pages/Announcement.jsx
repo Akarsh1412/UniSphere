@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Mail,
   Users,
@@ -27,32 +27,77 @@ const Announcement = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isSending, setIsSending] = useState(false);
 
-  const [events] = useState([
-    {
-      id: 1,
-      title: "Tech Fest 2025",
-      club: "Computer Science Club",
-      date: "June 25, 2025",
-      time: "10:00 AM - 6:00 PM",
-      venue: "Main Auditorium",
-      price: 500,
-      registrations: 156,
-      image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop",
-      description: "Join us for the biggest tech event of the year featuring workshops, competitions, and networking opportunities.",
-    },
-    {
-      id: 2,
-      title: "Cultural Night",
-      club: "Arts & Culture Society",
-      date: "June 28, 2025",
-      time: "7:00 PM - 11:00 PM",
-      venue: "Open Theatre",
-      price: 300,
-      registrations: 287,
-      image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop",
-      description: "Experience an evening of cultural performances, music, and dance celebrating diversity.",
-    },
-  ]);
+  // Backend data states
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedEventDetails, setSelectedEventDetails] = useState(null);
+  const [registeredStudents, setRegisteredStudents] = useState([]);
+  const [allStudentsCount, setAllStudentsCount] = useState(0);
+
+  // Fetch events from backend
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        const response = await axios.get('http://localhost:5000/api/events', {
+          headers: { 'Authorization': `Bearer ${token}` },
+          params: { upcoming: 'true', limit: 100 } // Get upcoming events
+        });
+        
+        if (response.data.success) {
+          setEvents(response.data.events);
+          // Get total students count from the first event's club or make separate API call
+          setAllStudentsCount(response.data.totalStudents || 500); // You might need to add this to your API
+        }
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        setEvents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Fetch event details and registrations when event is selected
+  useEffect(() => {
+    const fetchEventDetails = async () => {
+      if (!selectedEvent) {
+        setSelectedEventDetails(null);
+        setRegisteredStudents([]);
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('adminToken');
+        
+        // Fetch event details
+        const eventResponse = await axios.get(`http://localhost:5000/api/events/${selectedEvent}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        // Fetch event registrations
+        const registrationsResponse = await axios.get(`http://localhost:5000/api/events/${selectedEvent}/registrations`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (eventResponse.data.success) {
+          setSelectedEventDetails(eventResponse.data.event);
+        }
+
+        if (registrationsResponse.data.success) {
+          setRegisteredStudents(registrationsResponse.data.registrations);
+        }
+      } catch (error) {
+        console.error('Error fetching event details:', error);
+        setSelectedEventDetails(null);
+        setRegisteredStudents([]);
+      }
+    };
+
+    fetchEventDetails();
+  }, [selectedEvent]);
 
   const handleEventChange = (eventId) => {
     setSelectedEvent(eventId);
@@ -93,26 +138,37 @@ const Announcement = () => {
   };
 
   const getSelectedEventData = () => {
-    return events.find((e) => e.id === parseInt(selectedEvent));
+    return selectedEventDetails || events.find((e) => e.id === parseInt(selectedEvent));
   };
 
   const generateEventEmail = () => {
     const event = getSelectedEventData();
     if (!event) return "";
+    
+    const eventDate = new Date(event.date).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
     return `
 Dear Students,
 
-We are excited to announce "${event.title}" organized by ${event.club}.
+We are excited to announce "${event.title}" organized by ${event.club_name}.
 
 Event Details:
-📅 Date: ${event.date}
-🕐 Time: ${event.time}
+📅 Date: ${eventDate}
+🕐 Time: ${event.time_start} - ${event.time_end}
 📍 Venue: ${event.venue}
 💰 Registration Fee: ₹${event.price}
 
 ${event.description}
 
 Don't miss this amazing opportunity! Register now to secure your spot.
+
+Current Registrations: ${event.registrations_count || 0}
+${event.capacity ? `Available Spots: ${event.capacity - (event.registrations_count || 0)}` : ''}
 
 For more information and registration, please visit our events portal.
 
@@ -133,13 +189,13 @@ Event Management Team
       let recipientsEmails = [];
 
       if (recipientType === "all") {
-        alert("For security, the 'All Students' list should be handled server-side. This is a demo.");
-        recipientsEmails = ["student1@example.com", "student2@example.com"];
+        // You'll need to create an API endpoint to get all student emails
+        const response = await axios.get('http://localhost:5000/api/students/emails', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
+        });
+        recipientsEmails = response.data.emails || [];
       } else if (recipientType === "registered") {
-         if(selectedEvent){
-            alert("For security, the 'Registered Students' list should be handled server-side. This is a demo.");
-            recipientsEmails = ["event-registrant1@example.com"];
-        }
+        recipientsEmails = registeredStudents.map(student => student.email);
       } else if (recipientType === "manual") {
         recipientsEmails = manualEmails.split(/[\n,;]+/).map((email) => email.trim()).filter((email) => email);
       } else if (recipientType === "upload") {
@@ -160,10 +216,13 @@ Event Management Team
         to: recipientsEmails,
         subject,
         html: htmlContent,
+      }, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
       });
 
       alert(`Email sent successfully to ${recipientCount} recipients!`);
 
+      // Reset form
       setSubject("");
       setMessage("");
       setSelectedEvent("");
@@ -180,10 +239,11 @@ Event Management Team
   };
 
   const getRecipientCount = () => {
-    if (recipientType === "all") return "All Students (Demo)";
+    if (recipientType === "all") return `All Students (${allStudentsCount})`;
     if (recipientType === "registered") {
-      const event = getSelectedEventData();
-      return event ? `${event.registrations} registered (Demo)` : "Select an event";
+      return selectedEventDetails 
+        ? `${registeredStudents.length} registered students` 
+        : "Select an event";
     }
     if (recipientType === "manual") {
       const emails = manualEmails.split(/[\n,;]+/).filter((email) => email.trim() !== "");
@@ -207,6 +267,17 @@ Event Management Team
     }
     return isContentInvalid || isRecipientInvalid;
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading events...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -250,7 +321,11 @@ Event Management Team
                       <label className="block text-sm font-medium text-gray-700 mb-2">Select Event</label>
                       <select value={selectedEvent} onChange={(e) => handleEventChange(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                         <option value="">Choose an event...</option>
-                        {events.map((event) => (<option key={event.id} value={event.id}>{event.title} - {event.date}</option>))}
+                        {events.map((event) => (
+                          <option key={event.id} value={event.id}>
+                            {event.title} - {new Date(event.date).toLocaleDateString()}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   )}
@@ -280,6 +355,7 @@ Event Management Team
                     </div>
                   )}
                 </div>
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
@@ -310,6 +386,7 @@ Event Management Team
                   </button>
                 </div>
               </div>
+
               <div className="space-y-6">
                 <div className="bg-blue-50 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center space-x-2">
@@ -325,25 +402,43 @@ Event Management Team
                       <span className="text-blue-700">Email Type:</span>
                       <span className="font-medium text-blue-900 capitalize">{emailType}</span>
                     </div>
-                    {selectedEvent && (
+                    {selectedEventDetails && (
                       <div className="flex justify-between">
                         <span className="text-blue-700">Event:</span>
-                        <span className="font-medium text-blue-900">{getSelectedEventData()?.title}</span>
+                        <span className="font-medium text-blue-900">{selectedEventDetails.title}</span>
                       </div>
                     )}
                   </div>
                 </div>
-                {selectedEvent && emailType === "event" && (
+
+                {selectedEventDetails && emailType === "event" && (
                   <div className="bg-white border border-gray-200 rounded-lg p-4">
                     <h4 className="font-semibold text-gray-900 mb-3">Selected Event</h4>
                     <div className="space-y-2 text-sm">
-                      <div className="flex items-center space-x-2 text-gray-600"><Calendar size={14} /><span>{getSelectedEventData()?.date}</span></div>
-                      <div className="flex items-center space-x-2 text-gray-600"><Clock size={14} /><span>{getSelectedEventData()?.time}</span></div>
-                      <div className="flex items-center space-x-2 text-gray-600"><MapPin size={14} /><span>{getSelectedEventData()?.venue}</span></div>
-                      <div className="flex items-center space-x-2 text-gray-600"><DollarSign size={14} /><span>₹{getSelectedEventData()?.price}</span></div>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Calendar size={14} />
+                        <span>{new Date(selectedEventDetails.date).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Clock size={14} />
+                        <span>{selectedEventDetails.time_start} - {selectedEventDetails.time_end}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <MapPin size={14} />
+                        <span>{selectedEventDetails.venue}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <DollarSign size={14} />
+                        <span>₹{selectedEventDetails.price}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Users size={14} />
+                        <span>{selectedEventDetails.registrations_count || 0} registered</span>
+                      </div>
                     </div>
                   </div>
                 )}
+
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <h4 className="font-semibold text-yellow-800 mb-2">Email Guidelines</h4>
                   <ul className="text-sm text-yellow-700 space-y-1 list-disc list-inside">

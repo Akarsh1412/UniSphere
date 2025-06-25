@@ -22,7 +22,6 @@ const ClubDetails = () => {
       if (response.data.success) {
         const clubData = response.data.club;
         
-        // Transform API data using only available fields
         const transformedClub = {
           id: clubData.id,
           name: clubData.name,
@@ -112,7 +111,6 @@ const ClubDetails = () => {
     );
   }
 
-  // Club not found
   if (!club) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-20 flex items-center justify-center">
@@ -130,7 +128,6 @@ const ClubDetails = () => {
     );
   }
 
-  // Updated tabs without Media
   const tabs = [
     { id: "overview", label: "Overview", icon: Star },
     { id: "events", label: "Events", icon: Calendar },

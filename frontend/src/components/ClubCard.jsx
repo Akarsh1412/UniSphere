@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Users, Eye, Calendar } from "lucide-react";
+import { Eye, Calendar } from "lucide-react";
 
 const ClubCard = ({ club }) => {
   const navigate = useNavigate();
@@ -46,10 +46,7 @@ const ClubCard = ({ club }) => {
         </p>
 
         <div className="flex items-center justify-between mb-4 text-sm text-gray-500">
-          <div className="flex items-center space-x-1">
-            <Users size={16} />
-            <span>{club.members} members</span>
-          </div>
+          
           <div className="flex items-center space-x-1">
             <Calendar size={16} />
             <span className="text-blue-600 font-medium">

@@ -30,7 +30,6 @@ const EventDetail = () => {
   const [showStripeForm, setShowStripeForm] = useState(false);
   const [clientSecret, setClientSecret] = useState(null);
   
-  // Toast states
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
@@ -38,7 +37,6 @@ const EventDetail = () => {
     fetchEvent();
   }, [id]);
 
-  // Toast helper functions
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
   };
@@ -258,9 +256,9 @@ const EventDetail = () => {
   const schedule = parseJSONArray(event.schedule);
   const requirements = parseJSONArray(event.requirements);
 
-  const registrationsCount = parseInt(event.registrations_count) || 0;
   const capacity = event.capacity || 0;
   const volunteersCount = parseInt(event.volunteers_count) || 0;
+  const registrationsCount = parseInt(event.registrations_count)-volunteersCount || 0;
   const volunteersNeeded = event.volunteers_needed || 0;
   const volunteersRemaining = Math.max(0, volunteersNeeded - volunteersCount);
 

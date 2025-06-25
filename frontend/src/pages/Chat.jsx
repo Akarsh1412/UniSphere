@@ -1,20 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Send, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useChannel, ChannelProvider } from 'ably/react';
-import {
-  fetchConversations,
-  fetchMessages,
-  sendMessage,
-  fetchRecipientDetails,
-  addMessage,
-  setActiveConversation,
-  updateConversationLastMessage,
-  clearError,
-  clearMessages,
-  resetChatState
-} from '../redux/chatSlice';
+import { fetchConversations, fetchMessages, sendMessage, fetchRecipientDetails, addMessage, setActiveConversation,updateConversationLastMessage, clearError, clearMessages, resetChatState } from '../redux/chatSlice';
 
 const ChatContent = () => {
   const [newMessage, setNewMessage] = useState('');
@@ -39,7 +28,6 @@ const ChatContent = () => {
   const prevParamUserIdRef = useRef(null);
   const DEFAULT_AVATAR = "https://placehold.co/150x150/E2E8F0/4A5568?text=U";
 
-  // Ably channel for private messages
   const { channel } = useChannel(`private-messages-${currentUser?.id}`, (message) => {
     const messageData = message.data;
     
@@ -53,7 +41,6 @@ const ChatContent = () => {
     }));
   });
 
-  // Format time to show only hours and minutes
   const formatTime = useCallback((timestamp) => {
     const date = new Date(timestamp);
     const hours = date.getHours().toString().padStart(2, '0');
@@ -61,7 +48,6 @@ const ChatContent = () => {
     return `${hours}:${minutes}`;
   }, []);
 
-  // Improved scroll to bottom function
   const scrollToBottom = useCallback((force = false) => {
     if (messagesContainerRef.current && (!isUserScrolling || force)) {
       const container = messagesContainerRef.current;
@@ -69,7 +55,6 @@ const ChatContent = () => {
     }
   }, [isUserScrolling]);
 
-  // Handle scroll detection
   const handleScroll = useCallback(() => {
     if (!messagesContainerRef.current) return;
     
@@ -79,7 +64,6 @@ const ChatContent = () => {
     setIsUserScrolling(!isAtBottom);
   }, []);
 
-  // Auto-scroll when new messages arrive
   useEffect(() => {
     if (messages.length > 0) {
       const timeoutId = setTimeout(() => {
@@ -89,7 +73,6 @@ const ChatContent = () => {
     }
   }, [messages, scrollToBottom]);
 
-  // Initialize component and fetch conversations
   useEffect(() => {
     if (currentUser && !isInitialized) {
       dispatch(fetchConversations());
@@ -97,30 +80,23 @@ const ChatContent = () => {
     }
   }, [currentUser, dispatch, isInitialized]);
 
-  // FIXED: Handle paramUserId changes with proper cleanup
   useEffect(() => {
-    // Only proceed if component is initialized
     if (!isInitialized) return;
 
-    // Check if paramUserId actually changed
     if (prevParamUserIdRef.current === paramUserId) return;
     
     prevParamUserIdRef.current = paramUserId;
 
     if (paramUserId) {
-      // Clear previous state first
       dispatch(clearMessages());
       dispatch(setActiveConversation(null));
       
-      // Small delay to ensure state is cleared
       const timeoutId = setTimeout(() => {
         const existingConversation = conversations.find(c => c.id.toString() === paramUserId);
         
         if (existingConversation) {
-          console.log('Found existing conversation:', existingConversation);
           dispatch(setActiveConversation(existingConversation));
         } else {
-          console.log('Fetching new recipient details for:', paramUserId);
           dispatch(fetchRecipientDetails(paramUserId))
             .unwrap()
             .then((recipientData) => {
@@ -135,7 +111,6 @@ const ChatContent = () => {
             })
             .catch((error) => {
               console.error('Failed to fetch recipient details:', error);
-              // Navigate back to chat list on error
               navigate('/chat');
             });
         }
@@ -143,26 +118,21 @@ const ChatContent = () => {
 
       return () => clearTimeout(timeoutId);
     } else {
-      // Clear state when no user is selected
       dispatch(resetChatState());
     }
   }, [paramUserId, conversations, dispatch, navigate, isInitialized]);
 
-  // Fetch messages when active conversation changes
   useEffect(() => {
     if (activeConversation?.id && isInitialized) {
-      console.log('Fetching messages for conversation:', activeConversation.id);
       dispatch(fetchMessages(activeConversation.id));
       setIsUserScrolling(false);
     }
   }, [activeConversation?.id, dispatch, isInitialized]);
 
-  // Handle sidebar user click
   const handleUserClick = useCallback((e, userId) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Prevent navigation if already on the same user
     if (paramUserId === userId.toString()) return;
     
     const currentScrollPosition = window.pageYOffset;
@@ -173,7 +143,6 @@ const ChatContent = () => {
     }, 0);
   }, [navigate, paramUserId]);
 
-  // Handle send message
   const handleSendMessage = useCallback(async (e) => {
     if (e) {
       e.preventDefault();
@@ -218,7 +187,6 @@ const ChatContent = () => {
     }
   }, [handleSendMessage]);
 
-  // Check if conversation has unread messages
   const hasUnreadMessages = useCallback((conversationId) => {
     return messages.some(msg => 
       msg.sender_id.toString() === conversationId.toString() && 
@@ -227,7 +195,6 @@ const ChatContent = () => {
     );
   }, [messages, currentUser]);
 
-  // Loading state for initialization
   if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">

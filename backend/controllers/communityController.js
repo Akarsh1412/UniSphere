@@ -1,4 +1,4 @@
-import { Post, Comment, Like, pool } from "../models/index.js";
+import { Post, Comment, pool } from "../models/index.js";
 import Ably from "ably";
 
 const ably = new Ably.Realtime({ key: process.env.ABLY_API_KEY });
@@ -11,8 +11,6 @@ export const getAllPosts = async (req, res, next) => {
     const userId = req.user?.userId || null;
     
     const offset = (page - 1) * limit;
-
-    // Convert userId to integer to ensure proper matching
     const userIdInt = userId ? parseInt(userId) : null;
 
     let query, params;
@@ -56,13 +54,11 @@ export const getAllPosts = async (req, res, next) => {
 
     const result = await pool.query(query, params);
 
-    // Map the results to match frontend expectations with explicit boolean conversion
     const mappedPosts = result.rows.map((post) => ({
       ...post,
       user_name: post.author_name,
       user_profile_picture: post.author_avatar,
       user_id: post.user_id,
-      // Force boolean conversion - handle PostgreSQL's 't'/'f' strings
       is_liked: post.is_liked === true || post.is_liked === 't' || post.is_liked === 'true'
     }));
 
@@ -79,7 +75,6 @@ export const getAllPosts = async (req, res, next) => {
         [post.id]
       );
 
-      // Map comment fields to match frontend expectations
       post.comments = commentsResult.rows.map((comment) => ({
         ...comment,
         user_name: comment.author_name,
@@ -87,7 +82,9 @@ export const getAllPosts = async (req, res, next) => {
       }));
     }
 
-    const totalPosts = await Post.count();
+    // Fix: Use raw SQL query for total count instead of Post.count()
+    const totalCountResult = await pool.query('SELECT COUNT(*) FROM posts');
+    const totalPosts = parseInt(totalCountResult.rows[0].count);
 
     res.json({
       success: true,
@@ -103,8 +100,6 @@ export const getAllPosts = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 export const createPost = async (req, res, next) => {
   try {

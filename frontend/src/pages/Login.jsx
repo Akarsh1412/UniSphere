@@ -18,10 +18,8 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Toast states
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  // Toast helper functions
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
   };
@@ -57,7 +55,6 @@ const Login = () => {
     
     setErrors(newErrors);
     
-    // Show validation errors via toast
     if (Object.keys(newErrors).length > 0) {
       const firstError = Object.values(newErrors)[0];
       showToast(firstError, 'error');
@@ -84,7 +81,6 @@ const Login = () => {
       
       showToast('Login successful! Welcome back.', 'success');
       
-      // Delay navigation to show success toast
       setTimeout(() => {
         navigate('/');
       }, 1500);

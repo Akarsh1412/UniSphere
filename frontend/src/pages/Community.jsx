@@ -29,12 +29,17 @@ import { useChannel } from "ably/react";
 import OnlineUsers from "../components/OnlineUsers";
 
 const Community = () => {
+  const API_URL = import.meta.env.VITE_API_BASE_URL;
+  const POSTS_PER_PAGE = 10;
   const [posts, setPosts] = useState([]);
   const [newPostContent, setNewPostContent] = useState("");
   const [newPostImage, setNewPostImage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [lightboxState, setLightboxState] = useState({
     open: false,
     slides: [],
@@ -49,110 +54,190 @@ const Community = () => {
   const optionsMenuRef = useRef(null);
   const DEFAULT_AVATAR = "https://placehold.co/150x150/E2E8F0/4A5568?text=U";
 
-  // Ably channel subscription
   const { channel } = useChannel("community-posts", (message) => {
-  const { name, data } = message;
+    const { name, data } = message;
 
-  switch (name) {
-    case "newPost":
-      setPosts((prev) => [data, ...prev]);
-      break;
-    case "deletePost":
-      setPosts((prev) => prev.filter((p) => parseInt(p.id) !== parseInt(data.postId)));
-      break;
-    case "updateLike":
-      setPosts((prev) =>
-        prev.map((p) => {
-          if (parseInt(p.id) === parseInt(data.postId)) {
-            // Check if current user is in the likers array
-            const currentUserLiked = currentUser && data.likerIds.includes(parseInt(currentUser.id));
-            
-            return {
-              ...p,
-              likes_count: parseInt(data.likesCount),
-              is_liked: Boolean(currentUserLiked) // Ensure boolean type
-            };
-          }
-          return p;
-        })
-      );
-      break;
-    case "newComment":
-      setPosts((prev) =>
-        prev.map((p) =>
-          parseInt(p.id) === parseInt(data.postId)
-            ? {
+    switch (name) {
+      case "newPost":
+        setPosts((prev) => [data, ...prev]);
+        break;
+      case "deletePost":
+        setPosts((prev) =>
+          prev.filter((p) => parseInt(p.id) !== parseInt(data.postId))
+        );
+        break;
+      case "updateLike":
+        setPosts((prev) =>
+          prev.map((p) => {
+            if (parseInt(p.id) === parseInt(data.postId)) {
+              const currentUserLiked =
+                currentUser && data.likerIds.includes(parseInt(currentUser.id));
+
+              return {
                 ...p,
-                comments: [...(p.comments || []), data.comment],
-                comments_count: (p.comments_count || 0) + 1,
-              }
-            : p
-        )
-      );
-      break;
-    case "deleteComment":
-      setPosts((prev) =>
-        prev.map((p) =>
-          parseInt(p.id) === parseInt(data.postId)
-            ? {
-                ...p,
-                comments: (p.comments || []).filter(
-                  (c) => parseInt(c.id) !== parseInt(data.commentId)
-                ),
-                comments_count: Math.max(0, (p.comments_count || 0) - 1),
-              }
-            : p
-        )
-      );
-      break;
-    case "sharePost":
-      setPosts((prev) =>
-        prev.map((p) =>
-          parseInt(p.id) === parseInt(data.postId)
-            ? { ...p, shares_count: data.sharesCount }
-            : p
-        )
-      );
-      break;
-    default:
-      break;
-  }
-});
+                likes_count: parseInt(data.likesCount),
+                is_liked: Boolean(currentUserLiked),
+              };
+            }
+            return p;
+          })
+        );
+        break;
+      case "newComment":
+        setPosts((prev) =>
+          prev.map((p) =>
+            parseInt(p.id) === parseInt(data.postId)
+              ? {
+                  ...p,
+                  comments: [...(p.comments || []), data.comment],
+                  comments_count: (p.comments_count || 0) + 1,
+                }
+              : p
+          )
+        );
+        break;
+      case "deleteComment":
+        setPosts((prev) =>
+          prev.map((p) =>
+            parseInt(p.id) === parseInt(data.postId)
+              ? {
+                  ...p,
+                  comments: (p.comments || []).filter(
+                    (c) => parseInt(c.id) !== parseInt(data.commentId)
+                  ),
+                  comments_count: Math.max(0, (p.comments_count || 0) - 1),
+                }
+              : p
+          )
+        );
+        break;
+      case "sharePost":
+        setPosts((prev) =>
+          prev.map((p) =>
+            parseInt(p.id) === parseInt(data.postId)
+              ? { ...p, shares_count: data.sharesCount }
+              : p
+          )
+        );
+        break;
+      default:
+        break;
+    }
+  });
 
   useEffect(() => {
-  const fetchPosts = async () => {
-    setIsLoading(true);
-    setError(null);
+    const handleScroll = () => {
+      const scrollPosition =
+        window.innerHeight + document.documentElement.scrollTop;
+      const documentHeight = document.documentElement.offsetHeight;
+
+      if (
+        scrollPosition >= documentHeight - 1000 &&
+        !isLoadingMore &&
+        hasMorePosts
+      ) {
+        fetchMorePosts();
+      }
+    };
+
+    const throttledHandleScroll = throttle(handleScroll, 200);
+    window.addEventListener("scroll", throttledHandleScroll);
+    return () => window.removeEventListener("scroll", throttledHandleScroll);
+  }, [currentPage, hasMorePosts, isLoadingMore]);
+
+  const throttle = (func, limit) => {
+    let inThrottle;
+    return function () {
+      const args = arguments;
+      const context = this;
+      if (!inThrottle) {
+        func.apply(context, args);
+        inThrottle = true;
+        setTimeout(() => (inThrottle = false), limit);
+      }
+    };
+  };
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await axios.get(
+          `${API_URL}/api/community/posts?page=1&limit=${POSTS_PER_PAGE}`,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
+        );
+
+        const postsWithBooleanLikes = response.data.posts.map((p) => ({
+          ...p,
+          showComments: false,
+          newComment: "",
+          is_liked: Boolean(p.is_liked),
+        }));
+
+        setPosts(postsWithBooleanLikes);
+        setCurrentPage(1);
+        setHasMorePosts(
+          response.data.pagination.currentPage <
+            response.data.pagination.totalPages
+        );
+      } catch (err) {
+        setError("Failed to load community feed. Please try again later.");
+        console.error("Error fetching posts:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  const fetchMorePosts = async () => {
+    if (isLoadingMore || !hasMorePosts) return;
+
+    setIsLoadingMore(true);
     try {
       const token = localStorage.getItem("token");
-      console.log(token);
-      
+      const nextPage = currentPage + 1;
+
       const response = await axios.get(
-        "http://localhost:5000/api/community/posts",
+        `${API_URL}/api/community/posts?page=${nextPage}&limit=${POSTS_PER_PAGE}`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
-      
-      // Ensure is_liked is boolean for all posts
-      const postsWithBooleanLikes = response.data.posts.map((p) => ({
+
+      const newPosts = response.data.posts.map((p) => ({
         ...p,
         showComments: false,
         newComment: "",
-        is_liked: Boolean(p.is_liked) // Ensure boolean type
+        is_liked: Boolean(p.is_liked),
       }));
-      
-      setPosts(postsWithBooleanLikes);
+
+      setPosts((prevPosts) => {
+        const existingIds = new Set(prevPosts.map((post) => post.id));
+        const uniqueNewPosts = newPosts.filter(
+          (post) => !existingIds.has(post.id)
+        );
+        return [...prevPosts, ...uniqueNewPosts];
+      });
+
+      setCurrentPage(nextPage);
+      setHasMorePosts(
+        response.data.pagination.currentPage <
+          response.data.pagination.totalPages
+      );
     } catch (err) {
-      setError("Failed to load community feed. Please try again later.");
-      console.error("Error fetching posts:", err);
+      console.error("Error fetching more posts:", err);
+      setError("Failed to load more posts. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
-
-  fetchPosts();
-}, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -170,12 +255,32 @@ const Community = () => {
   const formatTime = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
+
+    if (isNaN(date.getTime())) {
+      return "Invalid date";
+    }
+
     const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 0) {
+      return "just now";
+    }
+
     if (diffInSeconds < 60) return "just now";
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes}m ago`;
+    }
+    if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours}h ago`;
+    }
+    if (diffInSeconds < 604800) {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days}d ago`;
+    }
+    
+    return date.toLocaleDateString();
   };
 
   const handleDirectMessage = (userId) => {
@@ -198,7 +303,7 @@ const Community = () => {
 
       await axios({
         method,
-        url: `http://localhost:5000/api/community${url}`,
+        url: `${API_URL}/api/community${url}`,
         data,
         headers: { Authorization: `Bearer ${token}`, ...headers },
       });
@@ -230,13 +335,12 @@ const Community = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `http://localhost:5000/api/community/posts/${postId}/like`,
+        `${API_URL}/api/community/posts/${postId}/like`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      // Remove optimistic updates - let Ably handle the real-time sync
     } catch (err) {
       console.error("Like error:", err);
       alert("Failed to update like. Please try again.");
@@ -261,7 +365,7 @@ const Community = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `http://localhost:5000/api/community/posts/${postId}/comments`,
+        `${API_URL}/api/community/posts/${postId}/comments`,
         { content: commentContent },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -294,7 +398,7 @@ const Community = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:5000/api/community/posts", formData, {
+      await axios.post(`${API_URL}/api/community/posts`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -635,6 +739,20 @@ const Community = () => {
             )}
 
             {renderContent()}
+            {isLoadingMore && (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-gray-600 mt-2">Loading more posts...</p>
+              </div>
+            )}
+
+            {!hasMorePosts && posts.length > 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-600">
+                  You've reached the end of the feed!
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-1">
