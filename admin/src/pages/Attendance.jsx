@@ -5,7 +5,7 @@ import { ArrowLeft, Users, UserCheck, UserX, Search, Filter, Save } from 'lucide
 const Attendance = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  const API_URL = import.meta.env.VITE_API_URL;
   const [eventData, setEventData] = useState(null);
   const [attendees, setAttendees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +66,6 @@ const Attendance = () => {
     setError('');
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL;
       const response = await fetch(`${API_URL}/api/events/${id}/attendance`, {
         method: 'POST',
         headers: {
