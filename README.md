@@ -62,8 +62,6 @@ The database is designed to efficiently manage the relationships between users, 
 
 
 ## 📸 Application Screenshots
-
-*Showcase your application's UI/UX by adding screenshots below.*
 ![image](https://github.com/user-attachments/assets/704c1461-5412-43b6-bc65-bd24b98bbc57)
 ![image](https://github.com/user-attachments/assets/6ee62e78-b8bd-4237-8e36-8ca6fdd2d814)
 ![image](https://github.com/user-attachments/assets/8352ccd4-d2fb-4391-85c4-0c0ec0317fc5)
