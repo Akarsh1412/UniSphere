@@ -55,11 +55,7 @@ This project is built using a modern MERN-like stack, with PostgreSQL as the dat
 
 The database is designed to efficiently manage the relationships between users, clubs, events, posts, and messages.
 
-
-<p align="center">
-  ![image](https://github.com/user-attachments/assets/cd9d82f9-94be-4e03-ae75-98ff777754db)
-</p>
-
+![image](https://github.com/user-attachments/assets/cd9d82f9-94be-4e03-ae75-98ff777754db)
 
 ## 📸 Application Screenshots
 ![image](https://github.com/user-attachments/assets/704c1461-5412-43b6-bc65-bd24b98bbc57)
