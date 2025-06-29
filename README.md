@@ -21,10 +21,6 @@
 
 <br />
 
-<p align="center">
-  ![image](https://github.com/user-attachments/assets/32ffc597-201b-49e6-b9cb-c2c5ac8b0a14)
-</p>
-
 
 ## ✨ About The Project
 
