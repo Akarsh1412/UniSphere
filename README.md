@@ -189,10 +189,11 @@ Follow these instructions to get a local copy of the project up and running for 
         ```
         npm run dev
         ```
-      *   Start the admin development server (from the `/admin` directory):
+    *   Start the admin development server (from the `/admin` directory):
         ```
         npm run dev
         ```
+
 The application should now be accessible at `http://localhost:5173`.
 and the admin dashboard should now be accessible at `http://localhost:5174`.
 
