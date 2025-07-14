@@ -26,7 +26,6 @@ import {
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import { useChannel } from "ably/react";
-import OnlineUsers from "../components/OnlineUsers";
 
 const Community = () => {
   const API_URL = import.meta.env.VITE_API_BASE_URL;
@@ -753,10 +752,6 @@ const Community = () => {
                 </p>
               </div>
             )}
-          </div>
-
-          <div className="lg:col-span-1">
-            <OnlineUsers />
           </div>
         </div>
       </div>
